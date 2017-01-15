@@ -27,3 +27,13 @@
 |   Stage 5  |         |        |        |        |        |        |        |        |        |        |        |        |xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx|        |
 |            |         |        |        |        |        |        |        |        |        |        |        |        |        |        |        |        |        |
 +------------+---------+--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+
+
+Stage1: Build API Class
+Stage2: Automate Database Population
+Stage3: Algorithm design and implemation. Also basic web interface for testing
+Stage4: Forward facing website design and implementation
+Stage5: Polish, refinement, small additional features, unforseen design changes, so on.
+Week16: Prep for and giving final presentation.
+
+Spring break is exclulded in these counts, will be used for catchup or getting ahead of the timeline
