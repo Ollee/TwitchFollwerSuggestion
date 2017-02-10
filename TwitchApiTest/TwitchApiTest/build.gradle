@@ -15,6 +15,12 @@ repositories {
     // You can declare any Maven/Ivy/file repository here.
     jcenter()
     mavenCentral()
+    flatDir {
+    	dirs 'lib'
+    	}
+    repositories {
+        maven { url "https://jitpack.io" }
+    }	
 }
 
 dependencies {
@@ -29,5 +35,8 @@ dependencies {
     compile 'com.fasterxml.jackson.core:jackson-annotations:2.4.1'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.4.1'
     
+    
+    
+    compile 'com.github.PhilippHeuer:twitch4j:master-SNAPSHOT'
 }
 
