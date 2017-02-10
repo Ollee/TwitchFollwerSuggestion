@@ -27,6 +27,7 @@ public class TwitchWrapper {
 			System.out.println("Error getting userID");
 		}
 		
+		channelEndpoint.getFollowers(arg0, arg1, arg2)
 		
 	}
 	public void setClientID(String clientID) {
