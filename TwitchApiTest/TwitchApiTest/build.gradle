@@ -37,6 +37,6 @@ dependencies {
     
     
     
-    compile 'com.github.PhilippHeuer:twitch4j:master-SNAPSHOT'
+    compile 'com.github.PhilippHeuer:twitch4j:develop-SNAPSHOT'
 }
 
