@@ -5,8 +5,10 @@ import java.util.Optional;
 
 import me.philippheuer.twitch4j.TwitchClient;
 import me.philippheuer.twitch4j.endpoints.ChannelEndpoint;
+import me.philippheuer.twitch4j.endpoints.UserEndpoint;
 import me.philippheuer.twitch4j.model.Channel;
 import me.philippheuer.twitch4j.model.Follow;
+import me.philippheuer.twitch4j.model.User;
 
 public class TwitchWrapper {
 	private String clientID = "5uuaaq02y9fv6j7phunakg0uoo5xu71";
@@ -50,8 +52,11 @@ public class TwitchWrapper {
 		Optional<Long> userId = twitchClient.getUserEndpoint().getUserIdByUserName(user);
 		//TODO build getUserChannelsFollows
 		//get user endpoint
+		UserEndpoint userEndpoint = twitchClient.getUserEndpoint();
 		// get user object
+		Optional<User> userObject = userEndpoint.getUser(userId.get());
 		//get channels followed
+		System.out.println("Successfully got the user object for: " + userObject.get().getDisplayName());
 		//return list of channels followed
 		return null;
 	}
