@@ -6,7 +6,6 @@ import java.util.Optional;
 import me.philippheuer.twitch4j.TwitchClient;
 import me.philippheuer.twitch4j.endpoints.ChannelEndpoint;
 import me.philippheuer.twitch4j.endpoints.UserEndpoint;
-import me.philippheuer.twitch4j.model.Channel;
 import me.philippheuer.twitch4j.model.Follow;
 import me.philippheuer.twitch4j.model.User;
 
@@ -29,7 +28,7 @@ public class TwitchWrapper {
 		
 		Optional<Long> channelId = twitchClient.getUserEndpoint().getUserIdByUserName(channel);
 		ChannelEndpoint channelEndpoint = twitchClient.getChannelEndpoint(channelId.get());
-		int followerCount = Math.toIntExact(channelEndpoint.getChannel().getFollowers());
+		Long followerCount = channelEndpoint.getChannel().getFollowers();
 		
 		System.out.println("The channel: " + channelEndpoint.getChannel().getDisplayName() + " has followerCount: " + followerCount);
 		
@@ -48,17 +47,18 @@ public class TwitchWrapper {
 		return this.clientSecret;
 	}
 	
-	public List<Channel> getUserChannelsFollowed(String user){
+	public List<Follow> getUserChannelsFollowed(String user){
+		//set client to user
 		Optional<Long> userId = twitchClient.getUserEndpoint().getUserIdByUserName(user);
-		//TODO build getUserChannelsFollows
 		//get user endpoint
 		UserEndpoint userEndpoint = twitchClient.getUserEndpoint();
 		// get user object
 		Optional<User> userObject = userEndpoint.getUser(userId.get());
-		//get channels followed
-		System.out.println("Successfully got the user object for: " + userObject.get().getDisplayName());
+		//get channels follows
+		List<Follow> userFollows = userEndpoint.getUserFollows(userObject.get().getId(), Optional.ofNullable(new Long(999999999)), Optional.ofNullable(new Long(0)), Optional.empty(), Optional.empty());
+		System.out.println(user + " follows: " + userFollows.size() + " channels");
 		//return list of channels followed
-		return null;
+		return userFollows;
 	}
 
 	
