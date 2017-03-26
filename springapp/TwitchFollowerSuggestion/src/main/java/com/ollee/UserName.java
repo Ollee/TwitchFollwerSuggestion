@@ -1,8 +1,16 @@
 package com.ollee;
 
-@lombok.Getter
-@lombok.Setter
 public class UserName {
 
-	private String name;
+	public String name;
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+	
+	
 }
