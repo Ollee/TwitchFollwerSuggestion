@@ -2,12 +2,23 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<title>Insert title here</title>
+<title th:text='${username.name}'>Insert title here</title>
 </head>
 <body>
 
 	<h1>Result</h1>
-    <p th:text="'username: ' + ${username.name}">these are words</p>
+	<table>
+		<tr>
+			<td>
+				<table>
+				    <tr th:each="follow : ${userfollows}">
+				    	<td th:text="${follow.user.name}"></td>
+				    	<td th:text="${follow.channel.name}"></td>
+				    </tr>
+			    </table>
+		    </td>
+	    </tr>
+    </table>
     <a href="/index">Do Another User</a>
 </body>
 </html>

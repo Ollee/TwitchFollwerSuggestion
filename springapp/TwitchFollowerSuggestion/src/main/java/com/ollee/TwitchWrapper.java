@@ -24,6 +24,7 @@ public class TwitchWrapper {
 			}
 	}
 
+	//get list of of followers a channel has
 	public List<Follow> getChannelFollowers(String channel){
 		
 		Optional<Long> channelId = twitchClient.getUserEndpoint().getUserIdByUserName(channel);
@@ -39,7 +40,7 @@ public class TwitchWrapper {
 		return follows;
 	}
 	
-	public String getClientID() {
+	private String getClientID() {
 		return this.clientID;
 	}
 	
@@ -47,6 +48,7 @@ public class TwitchWrapper {
 		return this.clientSecret;
 	}
 	
+	//get list of all channels a user follows
 	public List<Follow> getUserChannelsFollowed(String user){
 		//set client to user
 		Optional<Long> userId = twitchClient.getUserEndpoint().getUserIdByUserName(user);
