@@ -1,40 +1,28 @@
 package com.ollee;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
-import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.SimpleStatement;
-import com.datastax.driver.core.Statement;
 
+import lombok.Getter;
 import me.philippheuer.twitch4j.model.Follow;
 
-public class CassandraDriver {
+public final class CassandraDriver {
 	
 	private static Cluster cluster;
-	private Session session;
+	@Getter
+	private static Session session;
 	private static String cassandraServer = "linode.ollee.net";
-	private static String clusterName = "Test cluster";
 	private static String keyspaceName = "twitchsuggestion";
-	//private static Keyspace keyspace = null;
 	
-	/*ColumnFamily<String, String> CF_USER_INFO =
-			new ColumnFamily<String,String>(
-					"follows", 				//columnfamilyname
-					StringSerializer.get(),		//key serializer
-					StringSerializer.get());	//column serializer*/
-	
-	public CassandraDriver() {
-		this.initializeCassandra();
+	private CassandraDriver() {
 	}
 	
-	private void initializeCassandra(){
+	public static void initializeCassandra(){
 		System.out.println("Building Cluster");
 		cluster  = Cluster.builder().addContactPoint(cassandraServer).build();
 		System.out.println("connection to cluster");
@@ -55,7 +43,7 @@ public class CassandraDriver {
 			System.out.println("DELETE FROM follows WHERE follower = '" + follower.toLowerCase() + "'; failed with exception: " + e.getMessage());
 		}
 	}
-
+	
 	private ResultSet selectFollow(String follower) {
 		System.out.println("Attempting query: SELECT * FROM follows WHERE follower='" + follower.toLowerCase() + "';");
 		ResultSet result = null;
@@ -67,7 +55,8 @@ public class CassandraDriver {
 		
 		return result;
 	}
-
+	
+	// keeping for support of insertFollowList(List<Follow followsList)
 	public int insertFollow(String follower, String channel){
 		System.out.println("Query in insertFollow(follower,channel): " + getInsertFollowStatement(follower.toLowerCase(),channel.toLowerCase()));
 		try {
@@ -79,13 +68,7 @@ public class CassandraDriver {
 		return 0;
 	}
 	
-	public String getInsertFollowStatement(String follower, String channel){
-		String statement = "";
-		statement = "INSERT INTO follows (follower,channel) VALUES ('" + follower.toLowerCase() + "', '" + channel.toLowerCase() + "')";
-		System.out.println("Generated statement: " + statement);
-		return statement;
-	}
-	
+	//this one is inefficient and only keeping incase somethingbreaks
 	public int insertFollowList(List<Follow> followsList){
 		Iterator<Follow> followsListIterator = followsList.iterator();
 		while(followsListIterator.hasNext()){
@@ -94,14 +77,35 @@ public class CassandraDriver {
 			insertFollow(follow.getUser().getName().toLowerCase(), follow.getChannel().getName().toLowerCase());
 		}		
 		return 0;
+	}	
+	// returns a insert follow query statment for follower,channel
+	public static String getInsertFollowStatement(String follower, String channel){
+		String statement = "";
+		statement = "INSERT INTO follows (uuid,follower,channel) VALUES (" + UUID.randomUUID() + ", '" + follower.toLowerCase() + "', '" + channel.toLowerCase() + "')";
+		System.out.println("Generated statement: " + statement);
+		return statement;
 	}
-	
+	//optimal way to insert since batch inserts don't work righti n cassandra
+	public static int threadedInsertFollowList(List<Follow> followsList){
+		Iterator<Follow> followsListIterator = followsList.iterator();
+		while(followsListIterator.hasNext()){
+			Follow follow = followsListIterator.next();
+			System.out.println("running insertFollow for: " + follow.getUser().getName().toLowerCase() + " for channel: " + follow.getChannel().getName().toLowerCase());
+			ThreadedInsert thread = new ThreadedInsert(
+					getInsertFollowStatement(
+							follow.getUser().getName().toLowerCase(),
+							follow.getChannel().getName().toLowerCase()));
+			thread.start();
+		}		
+		return 0;
+	}
+	//this doesn't work, keeping for the moment for posterity
 	public void batchInsert(List<Follow> followsList){
 		Iterator<Follow> i = followsList.iterator();
-		String batch = "BEGIN BATCH";
+		String batch = "BEGIN BATCH;";
 		while(i.hasNext()){
 			Follow f = i.next();
-			batch.concat(getInsertFollowStatement(f.getUser().getName().toLowerCase(),f.getChannel().getName().toLowerCase()) + "\n");
+			batch.concat(getInsertFollowStatement(f.getUser().getName().toLowerCase(),f.getChannel().getName().toLowerCase()) + ";\n");
 		}
 		batch.concat("APPLY BATCH;");
 		
@@ -113,49 +117,4 @@ public class CassandraDriver {
 		}
 	}
 
-	
-	
-	
-	// TODO batch insert
-	// TODO automate list insert
-	
-	
-	
-	
-	
-	
-	/*
-	private static void initializeAstyanax(String address){
-		AstyanaxContext<Keyspace> context = new AstyanaxContext.Builder()
-				.forCluster(clusterName)
-				.forKeyspace(keyspaceName)
-				.withAstyanaxConfiguration(new AstyanaxConfigurationImpl()
-						.setDiscoveryType(NodeDiscoveryType.RING_DESCRIBE)
-				)
-				.withConnectionPoolConfiguration(new ConnectionPoolConfigurationImpl("MyConnectionPool")
-						.setPort(9160)
-						.setMaxConnsPerHost(1)
-						.setSeeds("127.0.0.1:9160")
-				)
-				.withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
-				.buildKeyspace(ThriftFamilyFactory.getInstance());
-		context.start();
-		keyspace = context.getClient();
-	}
-	
-	//return 1 for success return 0 for fail
-	public int addFollow(String user, String channel){
-		MutationBatch m = keyspace.prepareMutationBatch();
-		
-		m.withRow(CF_USER_INFO, user)
-			.putColumn("channel", channel);
-		
-		try {
-			OperationResult<Void> result = m.execute();
-		} catch (ConnectionException e){
-			System.out.println(e.getMessage());
-			return 0;
-		}
-		return 1;
-	}*/
 }

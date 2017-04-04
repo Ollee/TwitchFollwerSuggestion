@@ -31,23 +31,8 @@ public class LoginController {
 		List<Follow> userFollows = twitch.getUserChannelsFollowed(username.getName());
 		System.out.println(username.getName() + " follows a number of users = " + userFollows.size());
 		
-		CassandraDriver cassandraDriver = new CassandraDriver();
+		CassandraDriver.threadedInsertFollowList(userFollows);
 		
-		Iterator<Follow> iteratorForFollows = userFollows.iterator();
-		while (iteratorForFollows.hasNext()){
-			Follow f = iteratorForFollows.next();
-			cassandraDriver.insertFollow(f.getUser().getName().toString().toLowerCase(), f.getChannel().getName().toString().toLowerCase());
-		}
-		
-//		int lazyTest = cassandraDriver.insertFollowList(userFollows);
-//		
-//		if(lazyTest == 1){
-//			mv.addObject("message", "failure.");
-//		}
-//		else{
-//			mv.addObject("message", "success.");
-//		}
-
 		mv.addObject("username", username);
 		mv.addObject("userfollows", userFollows);
 		System.out.println("hit LoginController.greetingSubmit for user: " + username.getName());
