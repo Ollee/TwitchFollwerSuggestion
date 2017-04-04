@@ -116,6 +116,8 @@ public class CassandraDriver {
 	
 	
 	
+	// TODO batch insert
+	// TODO automate list insert
 	
 	
 	
