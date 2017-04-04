@@ -18,7 +18,7 @@ public class TwitchFollowerSuggestionApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(TwitchFollowerSuggestionApplication.class, args);
-		CassandraDriver cassandraDriver = new CassandraDriver("linode.ollee.net");
+		CassandraDriver cassandraDriver = new CassandraDriver();
 	}
 	
 	

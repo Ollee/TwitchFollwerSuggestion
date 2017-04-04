@@ -1,5 +1,6 @@
 package com.ollee;
 
+import java.util.Iterator;
 import java.util.List;
 
 import org.springframework.stereotype.Controller;
@@ -30,14 +31,23 @@ public class LoginController {
 		List<Follow> userFollows = twitch.getUserChannelsFollowed(username.getName());
 		System.out.println(username.getName() + " follows a number of users = " + userFollows.size());
 		
-		CassandraDriver cassandraDriver = new CassandraDriver("linode.ollee.net");
+		CassandraDriver cassandraDriver = new CassandraDriver();
 		
-		int test = cassandraDriver.addFollow("testuser", "testchannel");
-		if (test == 1)
-			System.out.println("test cassandra update succeeded w/o error");
-		else
-			System.out.println("test cassandra update failed w/o error");
+		Iterator<Follow> iteratorForFollows = userFollows.iterator();
+		while (iteratorForFollows.hasNext()){
+			Follow f = iteratorForFollows.next();
+			cassandraDriver.insertFollow(f.getUser().getName().toString().toLowerCase(), f.getChannel().getName().toString().toLowerCase());
+		}
 		
+//		int lazyTest = cassandraDriver.insertFollowList(userFollows);
+//		
+//		if(lazyTest == 1){
+//			mv.addObject("message", "failure.");
+//		}
+//		else{
+//			mv.addObject("message", "success.");
+//		}
+
 		mv.addObject("username", username);
 		mv.addObject("userfollows", userFollows);
 		System.out.println("hit LoginController.greetingSubmit for user: " + username.getName());
