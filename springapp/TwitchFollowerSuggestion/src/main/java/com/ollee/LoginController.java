@@ -29,15 +29,15 @@ public class LoginController {
 		ModelAndView mv = new ModelAndView("usernameResult");
 		TwitchWrapper twitch = new TwitchWrapper();//replace this with threading controller
 		List<Follow> userFollows = twitch.getUserChannelsFollowed(username.getName());
-		System.out.println(username.getName() + " follows a number of users = " + userFollows.size());
+		System.out.println("LoginController: " + username.getName() + " follows a number of users = " + userFollows.size());
 		
 		CassandraDriver.threadedInsertFollowList(new LinkedList<Follow>(userFollows));
-		//TwitchAPICallHandler.fetchChannelSuggestions(username.getName());
+		TwitchAPICallHandler.fetchChannelSuggestions(username.getName());
 		
 		
 		mv.addObject("username", username);
 		mv.addObject("userfollows", userFollows);
-		System.out.println("hit LoginController.greetingSubmit for user: " + username.getName());
+		System.out.println("LoginController: hit LoginController.greetingSubmit for user: " + username.getName());
 		return mv;
 	}
 }

@@ -1,11 +1,14 @@
 package com.ollee;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
+import javassist.bytecode.Descriptor.Iterator;
 import me.philippheuer.twitch4j.TwitchClient;
 import me.philippheuer.twitch4j.endpoints.ChannelEndpoint;
 import me.philippheuer.twitch4j.endpoints.UserEndpoint;
+import me.philippheuer.twitch4j.model.Channel;
 import me.philippheuer.twitch4j.model.Follow;
 import me.philippheuer.twitch4j.model.User;
 
@@ -19,9 +22,12 @@ public final class TwitchWrapper {
 			twitchClient = new TwitchClient(TwitchWrapper.getClientID(), TwitchWrapper.getClientSecret());
 			}
 		catch (Exception e){
-			System.out.println("Exception caught from TwitchClient: " + e.toString());
+			System.out.println("TwitchWrapper: Exception caught from TwitchClient: " + e.toString());
 			e.printStackTrace();
 			}
+	}
+	public static Channel getChannelObject(String channelName){
+		return twitchClient.getChannelEndpoint(channelName).getChannel();
 	}
 
 	//get list of of followers a channel has
@@ -35,8 +41,8 @@ public final class TwitchWrapper {
 		
 		List<Follow> follows = channelEndpoint.getFollowers(Optional.ofNullable(followerCount), Optional.empty());
 		
-		System.out.println("The followers List of: " + channelEndpoint.getChannel().getDisplayName() + " has elements n = " + follows.size());
-		
+		System.out.println("TwitchWrapper: The followers List of: " + channelEndpoint.getChannel().getDisplayName() + " has elements n = " + follows.size());
+
 		return follows;
 	}
 	
@@ -58,7 +64,7 @@ public final class TwitchWrapper {
 		Optional<User> userObject = userEndpoint.getUser(userId.get());
 		//get channels follows
 		List<Follow> userFollows = userEndpoint.getUserFollows(userObject.get().getId(), Optional.ofNullable(new Long(999999999)), Optional.ofNullable(new Long(0)), Optional.empty(), Optional.empty());
-		System.out.println(user + " follows: " + userFollows.size() + " channels");
+		System.out.println("TwitchWrapper: " + user + " follows: " + userFollows.size() + " channels");
 		//return list of channels followed
 		return userFollows;
 	}

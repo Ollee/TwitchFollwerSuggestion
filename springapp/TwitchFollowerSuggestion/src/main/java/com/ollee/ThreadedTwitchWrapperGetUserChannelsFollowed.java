@@ -1,17 +1,23 @@
 package com.ollee;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import lombok.Getter;
+import me.philippheuer.twitch4j.model.Channel;
 import me.philippheuer.twitch4j.model.Follow;
 
 public class ThreadedTwitchWrapperGetUserChannelsFollowed implements Runnable {
+	@Getter
 	private String username;
 	private List<Follow> channelFollows = new LinkedList<Follow>();
 	private Thread t;
+	private Channel channel;
 	
 	public ThreadedTwitchWrapperGetUserChannelsFollowed(String u){
 		username = u;
+		channel = TwitchWrapper.getChannelObject(username);
 	}
 	
 	public List<Follow> getUserChannelsFollowedList() {
@@ -21,17 +27,13 @@ public class ThreadedTwitchWrapperGetUserChannelsFollowed implements Runnable {
 
 	@Override
 	public void run() {
-		while(!TwitchAPIRateLimiter.canIRun(this)){
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			System.out.println("Hung up in a thread to get user channels followed");
-		}
-		System.out.println("running TwitchWrapper.getChannelFollwoers(" + username + ")");
+		System.out.println("ThreadedTwitchWrappergetUserchannelsFollows: running TwitchWrapper.getChannelFollwoers(" + username + ")");
 		channelFollows.addAll(TwitchWrapper.getChannelFollowers(username));
+		System.out.println("ThreadedTwitchWrappergetUserchannelsFollows: got " + channelFollows.size() + "follows for user " + username);
+		for(int i = 0; i < channelFollows.size(); i++){
+			channelFollows.get(i).setChannel(channel);
+		}
+		TwitchAPIRateLimiter.addDone(this);
 	}
 	
 	public void start(){

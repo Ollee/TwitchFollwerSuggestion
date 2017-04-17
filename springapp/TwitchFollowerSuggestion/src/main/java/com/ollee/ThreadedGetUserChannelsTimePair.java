@@ -8,6 +8,7 @@ import lombok.Getter;
 public class ThreadedGetUserChannelsTimePair {
 	@Getter
 	long date;//miliseconds since epoch
+	@Getter
 	ThreadedTwitchWrapperGetUserChannelsFollowed t;
 	
 	public ThreadedGetUserChannelsTimePair(ThreadedTwitchWrapperGetUserChannelsFollowed thread){

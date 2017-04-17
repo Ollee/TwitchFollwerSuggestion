@@ -6,7 +6,7 @@ public class ThreadedInsert implements Runnable {
 	
 	public ThreadedInsert(String query){
 		threadQuery = query;
-		//System.out.println("Created thread for: " + threadQuery);
+		//System.out.println("ThreadedInsert: Created thread for: " + threadQuery);
 	}
 	
 	@Override
@@ -14,7 +14,7 @@ public class ThreadedInsert implements Runnable {
 		try {
 			CassandraDriver.getSession().execute(threadQuery);
 		} catch (Exception e){
-			System.out.println("Caught exception in thread: " 
+			System.out.println("ThreadedInsert: Caught exception in thread: " 
 						+ e.getMessage() 
 						+ e.getStackTrace().toString());
 		}
