@@ -6,7 +6,7 @@ public class ThreadedInsert implements Runnable {
 	
 	public ThreadedInsert(String query){
 		threadQuery = query;
-		System.out.println("Created thread for: " + threadQuery);
+		//System.out.println("Created thread for: " + threadQuery);
 	}
 	
 	@Override
@@ -22,7 +22,7 @@ public class ThreadedInsert implements Runnable {
 	}
 	
 	public void start(){
-		System.out.println("Starting thread for: " + threadQuery);
+		//System.out.println("Starting thread for: " + threadQuery);
 		if (t == null) {
 			t = new Thread (this, threadQuery);
 			t.start();

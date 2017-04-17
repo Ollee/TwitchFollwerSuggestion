@@ -1,6 +1,6 @@
 package com.ollee;
 
-import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.springframework.stereotype.Controller;
@@ -27,11 +27,13 @@ public class LoginController {
 		
 		//gather info and return to usernameResult
 		ModelAndView mv = new ModelAndView("usernameResult");
-		TwitchWrapper twitch = new TwitchWrapper();
+		TwitchWrapper twitch = new TwitchWrapper();//replace this with threading controller
 		List<Follow> userFollows = twitch.getUserChannelsFollowed(username.getName());
 		System.out.println(username.getName() + " follows a number of users = " + userFollows.size());
 		
-		CassandraDriver.threadedInsertFollowList(userFollows);
+		CassandraDriver.threadedInsertFollowList(new LinkedList<Follow>(userFollows));
+		//TwitchAPICallHandler.fetchChannelSuggestions(username.getName());
+		
 		
 		mv.addObject("username", username);
 		mv.addObject("userfollows", userFollows);

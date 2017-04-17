@@ -9,14 +9,14 @@ import me.philippheuer.twitch4j.endpoints.UserEndpoint;
 import me.philippheuer.twitch4j.model.Follow;
 import me.philippheuer.twitch4j.model.User;
 
-public class TwitchWrapper {
-	private String clientID = "5uuaaq02y9fv6j7phunakg0uoo5xu71";
-	private String clientSecret = "e17btqxk3f85piyf66zvlbmwfi5oc2";
-	private TwitchClient twitchClient;
+public final class TwitchWrapper {
+	private static String clientID = "5uuaaq02y9fv6j7phunakg0uoo5xu71";
+	private static String clientSecret = "e17btqxk3f85piyf66zvlbmwfi5oc2";
+	private static TwitchClient twitchClient;
 	
 	public TwitchWrapper() {
 		try{
-			twitchClient = new TwitchClient(this.getClientID(), this.getClientSecret());
+			twitchClient = new TwitchClient(TwitchWrapper.getClientID(), TwitchWrapper.getClientSecret());
 			}
 		catch (Exception e){
 			System.out.println("Exception caught from TwitchClient: " + e.toString());
@@ -25,7 +25,7 @@ public class TwitchWrapper {
 	}
 
 	//get list of of followers a channel has
-	public List<Follow> getChannelFollowers(String channel){
+	public static List<Follow> getChannelFollowers(String channel){
 		
 		Optional<Long> channelId = twitchClient.getUserEndpoint().getUserIdByUserName(channel);
 		ChannelEndpoint channelEndpoint = twitchClient.getChannelEndpoint(channelId.get());
@@ -40,16 +40,16 @@ public class TwitchWrapper {
 		return follows;
 	}
 	
-	private String getClientID() {
-		return this.clientID;
+	private static String getClientID() {
+		return TwitchWrapper.clientID;
 	}
 	
-	private String getClientSecret() {
-		return this.clientSecret;
+	private static String getClientSecret() {
+		return TwitchWrapper.clientSecret;
 	}
 	
 	//get list of all channels a user follows
-	public List<Follow> getUserChannelsFollowed(String user){
+	public static List<Follow> getUserChannelsFollowed(String user){
 		//set client to user
 		Optional<Long> userId = twitchClient.getUserEndpoint().getUserIdByUserName(user);
 		//get user endpoint
