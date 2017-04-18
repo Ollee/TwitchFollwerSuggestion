@@ -62,7 +62,9 @@ public final class TwitchAPICallHandler {
 			//insert new follows into channel
 		System.out.println("TwitchAPICallHandler: Cassandra threaded insert");
 		if(userFollowsToInsertIntoDatabase.size() > 0){
+			System.out.println("TwitchAPICallHandler: Inserting userFollows into database");
 			CassandraDriver.threadedInsertFollowList(userFollowsToInsertIntoDatabase);
+			CassandraDriver.insertUserIntoAlreadyFetchedTable(username);
 		}
 		//fetch followers of that channel - this needs to be threaded and rate limited
 			//api call to fetch all users that supply weight to channels to be followed
@@ -93,6 +95,7 @@ public final class TwitchAPICallHandler {
 				List<Follow> channelFollows = finishedQuery.getUserChannelsFollowedList();
 				System.out.println("TwitchAPICallHandler: channelFollows.size(): " + channelFollows.size() + " Attempting to threadedinsert");
 				CassandraDriver.threadedInsertFollowList(channelFollows);
+				tempI++;
 			}
 			//System.out.println("TwitchAPICallHandler: Hung up waiting threads to finish");
 			System.out.println("TwitchAPICallHandler: There are currently threads n = " + TwitchAPIRateLimiter.getNumberOfThreads());

@@ -57,10 +57,6 @@ public final class CassandraDriver {
 		} catch (Exception e){
 			System.out.println("CassandraDriver: SELECT " + follower.toLowerCase() + " FROM follows threw and error: " + e.getMessage());
 		}
-//		Iterator<Row> tempIterator = result.iterator();
-//		while(tempIterator.hasNext()){
-//			System.out.println("CassandraDriver: " + tempIterator.next().getString("channel"));
-//		}
 		return result;
 	}
 	
@@ -144,17 +140,7 @@ public final class CassandraDriver {
 			
 			followsList.removeAll(new HashSet<Follow>(followsToRemove));
 		}
-		//System.out.println("After cleanup followList is size: " + followsList.size() + "and duplicates is size" + duplicates.size());
-		//insert cleaned list
-		System.out.println("CassandraDriver: After cleanup of list, followsList.size(): " + followsList.size());
-//		followsListIterator = followsList.iterator();
-//		while(followsListIterator.hasNext()){
-//			Follow current = followsListIterator.next();
-//			if(current != null){
-//				System.out.println(current.toString());
-//			}
-//			//System.out.println("CassandraDriver: followsList dump: User: " + current.getUser().getName() + " channel: " + current.getChannel().getName());
-//		}
+
 		followsListIterator = followsList.iterator();
 		while(followsListIterator.hasNext()){
 			Follow follow = followsListIterator.next();
@@ -170,22 +156,71 @@ public final class CassandraDriver {
 		return 0;
 	}
 
-	//this doesn't work, keeping for the moment for posterity
-	public static void batchInsert(List<Follow> followsList){
-		Iterator<Follow> i = followsList.iterator();
-		String batch = "BEGIN BATCH;";
-		while(i.hasNext()){
-			Follow f = i.next();
-			batch.concat(getInsertFollowStatement(f.getUser().getName().toLowerCase(),f.getChannel().getName().toLowerCase()) + ";\n");
-		}
-		batch.concat("APPLY BATCH;");
-		
-		try{
-			session.execute(batch);
+	public static boolean checkIfChannelFollowersAlreadyFetched(String channelName){
+		System.out.println("CassandraDriver: Attempting query: SELECT * FROM channelfollowersfetched WHERE channel='" + channelName.toLowerCase() + "';");
+		ResultSet result = null;
+		try { //query from table
+			result = session.execute("SELECT * FROM channelfollowersfetched WHERE follower='" + channelName.toLowerCase() + "' ALLOW FILTERING;");
 		} catch (Exception e){
-			System.out.println("CassandraDriver: Exception cauth in batchInsert: " + e.getMessage());
-			System.out.println(e.getStackTrace().toString());
+			System.out.println("CassandraDriver: SELECT " + channelName.toLowerCase() + " FROM channelfollowersfetched threw and error: " + e.getMessage());
 		}
+		if(result == null){//check if there even is a result
+			return false;
+		}else  {
+			if (result.all().get(1) != null){//if the result has stomething in it
+				if(result.all().get(1).getString("channel").toLowerCase() == channelName.toLowerCase()){//if the something in it is matches channel name
+					return true;//return true if it matches in the table
+				}
+			}	else{
+				return false;//return false if it is not in the table
+			}
+		}
+		return false;
+	}
+	
+	public static void insertChannelIntoAlreadyFetchedTable(String channelName){
+		if(checkIfChannelFollowersAlreadyFetched(channelName)){
+			System.out.println("Inserting " + channelName + " into already checked caching table");
+			session.execute("INSERT INTO channelfollowersfetched (channel, timestamp) VALUES (" + channelName.toLowerCase() + "','" + Date.from(Instant.now()).getTime() + "')");
+			return;
+		}
+		System.out.println("Channel " + channelName + " already in already checked cache table");
+	}
+	
+	public static boolean checkIfUserChannelsFollowedAlreadyFetched(String username){
+		System.out.println("CassandraDriver: userchannelsfollowedfetched: Attempting query: SELECT * FROM userchannelsfollowedfetched WHERE user='" + username.toLowerCase() + "';");
+		ResultSet result = null;
+		try { //query from table
+			result = session.execute("SELECT * FROM userchannelsfollowedfetched WHERE user='" + username.toLowerCase() + "';");
+		} catch (Exception e){
+			System.out.println("CassandraDriver: userchannelsfollowedfetched: SELECT " + username.toLowerCase() + " FROM userchannelsfollowedfetched threw and error: " + e.getMessage());
+		}
+		if(result == null){ //check if there even is a result
+			System.out.println("CassandraDriver: userchannelsfollowedfetched: there was no resultset");
+			return false;
+		} else {
+			System.out.println("CassandraDriver: userchannelsfollowedfetched: There was a resultset");
+			if(result.all().get(1) != null){ //if there even is something
+				System.out.println("There is a thing in the result set: " + result.all().get(1).getString("user"));
+				if(result.all().get(1).getString("user").toLowerCase() == username.toLowerCase()){
+					System.out.println("CassandraDriver: userchannelsfollowedfetched:  the names match: " + username.toLowerCase());
+					return true; //return true if it matches the table username
+				}
+			} else{
+				System.out.println("CassandraDriver: userchannelsfollowedfetched: username not in the table");
+				return false; //if its not in the table
+			}
+		}
+		return false;
+	}
+	
+	public static void insertUserIntoAlreadyFetchedTable(String username){
+		System.out.println("CassandraDriver: userchannelsfollowedfetched method entered");
+		if(checkIfUserChannelsFollowedAlreadyFetched(username)){
+			System.out.println("CassandraDriver: userchannelsfollowedfetched: Inserting " + username + " into already checked caching table");
+			session.execute("INSERT INTO userchannelsfollowedfetched (user, timestamp) VALUES (" + username.toLowerCase() + "','" + Date.from(Instant.now()).getTime() + "')");
+		}
+		System.out.println("CassandraDriver: userchannelsfollowedfetched: User " + username + " already in already checked cache table");
 	}
 
 }
