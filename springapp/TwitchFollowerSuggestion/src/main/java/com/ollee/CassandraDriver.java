@@ -12,6 +12,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SocketOptions;
 
 import lombok.Getter;
 import me.philippheuer.twitch4j.model.Follow;
@@ -29,7 +30,11 @@ public final class CassandraDriver {
 	
 	public static void initializeCassandra(){
 		System.out.println("CassandraDriver: Building Cluster");
-		cluster  = Cluster.builder().addContactPoint(cassandraServer).build();
+		cluster  = Cluster.builder()
+				.addContactPoint(cassandraServer)
+				.withSocketOptions(new SocketOptions()
+											.setConnectTimeoutMillis(25000))
+				.build();
 		System.out.println("CassandraDriver: connection to cluster");
 		session = cluster.connect(keyspaceName);
 		System.out.println("CassandraDriver: creating table if doesn't exist");
@@ -155,20 +160,24 @@ public final class CassandraDriver {
 		}		
 		return 0;
 	}
-
+	// true = already in database
+	// false = not in database
 	public static boolean checkIfChannelFollowersAlreadyFetched(String channelName){
 		System.out.println("CassandraDriver: Attempting query: SELECT * FROM channelfollowersfetched WHERE channel='" + channelName.toLowerCase() + "';");
-		ResultSet result = null;
+
+		List<Row> resultList = null;
 		try { //query from table
-			result = session.execute("SELECT * FROM channelfollowersfetched WHERE follower='" + channelName.toLowerCase() + "' ALLOW FILTERING;");
+			resultList = session.execute("SELECT * FROM channelfollowersfetched WHERE channel='" + channelName.toLowerCase() + "' ALLOW FILTERING;").all();
 		} catch (Exception e){
 			System.out.println("CassandraDriver: SELECT " + channelName.toLowerCase() + " FROM channelfollowersfetched threw and error: " + e.getMessage());
 		}
-		if(result == null){//check if there even is a result
+
+		if(resultList == null){//check if there even is a result
 			return false;
 		}else  {
-			if (result.all().get(1) != null){//if the result has stomething in it
-				if(result.all().get(1).getString("channel").toLowerCase() == channelName.toLowerCase()){//if the something in it is matches channel name
+			if (!resultList.isEmpty()){//if the result has stomething in it
+				//System.out.println("There is a thing in the result set: " + resultList.size() + " channel: " + resultList.get(0).getString("channel").toLowerCase() + " and channelName: " + channelName);
+				if(resultList.get(0).getString("channel").toLowerCase().equals(channelName.toLowerCase())){//if the something in it is matches channel name
 					return true;//return true if it matches in the table
 				}
 			}	else{
@@ -179,30 +188,31 @@ public final class CassandraDriver {
 	}
 	
 	public static void insertChannelIntoAlreadyFetchedTable(String channelName){
-		if(checkIfChannelFollowersAlreadyFetched(channelName)){
-			System.out.println("Inserting " + channelName + " into already checked caching table");
-			session.execute("INSERT INTO channelfollowersfetched (channel, timestamp) VALUES (" + channelName.toLowerCase() + "','" + Date.from(Instant.now()).getTime() + "')");
+		if(!checkIfChannelFollowersAlreadyFetched(channelName)){
+			System.out.println("CassandraDriver: Inserting " + channelName + " into already checked caching table");
+			session.execute("INSERT INTO channelfollowersfetched (channel, timestamp) VALUES ('" + channelName.toLowerCase() + "','" + Date.from(Instant.now()).getTime() + "')");
 			return;
 		}
-		System.out.println("Channel " + channelName + " already in already checked cache table");
+		else
+			System.out.println("Channel " + channelName + " already in already checked cache table");
 	}
 	
 	public static boolean checkIfUserChannelsFollowedAlreadyFetched(String username){
 		System.out.println("CassandraDriver: userchannelsfollowedfetched: Attempting query: SELECT * FROM userchannelsfollowedfetched WHERE user='" + username.toLowerCase() + "';");
-		ResultSet result = null;
+		List<Row> resultList = null;
 		try { //query from table
-			result = session.execute("SELECT * FROM userchannelsfollowedfetched WHERE user='" + username.toLowerCase() + "';");
+			resultList = session.execute("SELECT * FROM userchannelsfollowedfetched WHERE user='" + username.toLowerCase() + "';").all();
 		} catch (Exception e){
 			System.out.println("CassandraDriver: userchannelsfollowedfetched: SELECT " + username.toLowerCase() + " FROM userchannelsfollowedfetched threw and error: " + e.getMessage());
 		}
-		if(result == null){ //check if there even is a result
+		if(resultList == null){ //check if there even is a result
 			System.out.println("CassandraDriver: userchannelsfollowedfetched: there was no resultset");
 			return false;
 		} else {
 			System.out.println("CassandraDriver: userchannelsfollowedfetched: There was a resultset");
-			if(result.all().get(1) != null){ //if there even is something
-				System.out.println("There is a thing in the result set: " + result.all().get(1).getString("user"));
-				if(result.all().get(1).getString("user").toLowerCase() == username.toLowerCase()){
+			if(!resultList.isEmpty()){ //if there even is something
+				System.out.println("There is a thing in the result set: " + resultList.get(0).getString("user"));
+				if(resultList.get(0).getString("user").toLowerCase().equals(username.toLowerCase())){
 					System.out.println("CassandraDriver: userchannelsfollowedfetched:  the names match: " + username.toLowerCase());
 					return true; //return true if it matches the table username
 				}
@@ -216,11 +226,19 @@ public final class CassandraDriver {
 	
 	public static void insertUserIntoAlreadyFetchedTable(String username){
 		System.out.println("CassandraDriver: userchannelsfollowedfetched method entered");
-		if(checkIfUserChannelsFollowedAlreadyFetched(username)){
+		if(!checkIfUserChannelsFollowedAlreadyFetched(username)){
 			System.out.println("CassandraDriver: userchannelsfollowedfetched: Inserting " + username + " into already checked caching table");
-			session.execute("INSERT INTO userchannelsfollowedfetched (user, timestamp) VALUES (" + username.toLowerCase() + "','" + Date.from(Instant.now()).getTime() + "')");
+			session.execute("INSERT INTO userchannelsfollowedfetched (user, timestamp) VALUES ('" + username.toLowerCase() + "','" + Date.from(Instant.now()).getTime() + "')");
 		}
 		System.out.println("CassandraDriver: userchannelsfollowedfetched: User " + username + " already in already checked cache table");
+	}
+	
+	public static void deleteUserFromAlreadyFetchedTable(String username){
+		session.execute("DELETE FROM userchannelsfollowedfetched where user='" + username + "';");
+	}
+	
+	public static void deleteChannelFromAlreadyFetchedtable(String channelName){
+		session.execute("DELETE FROM channelfollowersfetched where channel='" + channelName + "';");
 	}
 
 }

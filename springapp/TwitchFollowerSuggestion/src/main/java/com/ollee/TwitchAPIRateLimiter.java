@@ -2,17 +2,26 @@ package com.ollee;
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
+import lombok.Getter;
+import lombok.Setter;
+import me.philippheuer.twitch4j.model.Follow;
+
 public final class TwitchAPIRateLimiter implements Runnable {
-	private static Queue<ThreadedGetUserChannelsTimePair> master = new LinkedList<ThreadedGetUserChannelsTimePair>();
-	private static Queue<ThreadedTwitchWrapperGetUserChannelsFollowed> finished = new LinkedList<ThreadedTwitchWrapperGetUserChannelsFollowed>();
+	private static Queue<ThreadedGetUserChannelsTimePair> masterUserFollows = new LinkedList<ThreadedGetUserChannelsTimePair>();
+	private static Queue<ThreadedTwitchWrapperGetUserChannelsFollowed> finishedUserFollows = new LinkedList<ThreadedTwitchWrapperGetUserChannelsFollowed>();
 	private static Thread t;
 	private static long lastRun = Date.from(Instant.now()).getTime();
+	@Getter
+	@Setter
+	private static boolean started = false;
 	
 	public static void addElement(ThreadedTwitchWrapperGetUserChannelsFollowed t){
-		master.offer(new ThreadedGetUserChannelsTimePair(t));
+		masterUserFollows.offer(new ThreadedGetUserChannelsTimePair(t));
 	}
 	
 	public TwitchAPIRateLimiter(){
@@ -30,20 +39,21 @@ public final class TwitchAPIRateLimiter implements Runnable {
 //	}
 	
 	public static int getNumberOfThreads(){
-		return master.size();
+		return masterUserFollows.size();
 	}
 	
 	public static boolean isEmpty(){
-		return master.isEmpty();
+		return masterUserFollows.isEmpty();
 	}
 	
 	@Override
 	public void run() {
+		setStarted(true);
 		while(true){
-			if(!master.isEmpty()){
+			if(!masterUserFollows.isEmpty()){
 				if(Date.from(Instant.now()).getTime() - lastRun > 1000){
 					System.out.println("twitchAPIRateLimiter: Trying to start a fetch thread");
-					master.poll().getT().start();
+					masterUserFollows.poll().getT().start();
 					lastRun = Date.from(Instant.now()).getTime();
 				}
 			}
@@ -60,17 +70,29 @@ public final class TwitchAPIRateLimiter implements Runnable {
 
 	public static void addDone(ThreadedTwitchWrapperGetUserChannelsFollowed done) {
 		System.out.println("TwitchAPIRateLimiter: finished thread added: " + done.getUsername() + " with channels size: " + done.getUserChannelsFollowedList().size());
-		finished.offer(done);
+		finishedUserFollows.offer(done);
 	}
 	
 	public static int getFinishedSize(){
-		return finished.size();
+		return finishedUserFollows.size();
 	}
 	public static ThreadedTwitchWrapperGetUserChannelsFollowed getFinished(){
-		if(finished.size() == 0){
+		if(finishedUserFollows.size() == 0){
 			return null;
 		} else{
-			return finished.poll();
+			return finishedUserFollows.poll();
 		}
 	}
+
+	public static void enqueueListToFetchFromTwitchAndInsertIntoCassandra(List<Follow> userFollows) {
+		Iterator<Follow> iterator = userFollows.iterator();
+		Follow follow = null;
+		while(iterator.hasNext()){
+			follow = iterator.next();
+			System.out.println("TwithcAPIRateLimiter: Enqueueing fetch channel followS: " + follow.getChannel().getName().toLowerCase());
+			addElement(new ThreadedTwitchWrapperGetUserChannelsFollowed(follow.getChannel().getName().toLowerCase()));
+		}
+	}
+	
+
 }

@@ -14,78 +14,58 @@ import me.philippheuer.twitch4j.model.Follow;
 public final class TwitchAPICallHandler {
 	
 	private static List<String> userFollowsString = new LinkedList<String>();
-	private static List<String> channelsFollowedNotInDatabase = new LinkedList<String>();
 	private static List<Follow> userFollowsToInsertIntoDatabase = new LinkedList<Follow>();
 	private static List<Follow> channelFollowers = new LinkedList<Follow>();
-	private static List<ThreadedTwitchWrapperGetUserChannelsFollowed> listOfThreads = new LinkedList<ThreadedTwitchWrapperGetUserChannelsFollowed>();
+	private static TwitchAPIRateLimiter runMe = new TwitchAPIRateLimiter();
 
 	public TwitchAPICallHandler(){
 	}
 	
 	public static List<Channel> fetchChannelSuggestions(String username){
-		
-		//fetch channels user follows
+//level1
+	//fetch channels user follows
 		System.out.println("TwitchAPICallHandler: Fetching channels that " + username + " follows.");
 		List<Follow> userFollows = TwitchWrapper.getUserChannelsFollowed(username);//fethc channels user follows
 		System.out.println("userfollows size(): " + userFollows.size());
-		//turn userfollows into lsit of strings
-		Iterator<Follow> iterator1 = userFollows.iterator();
-		//int temporaryCounter = 0;
-		System.out.println("TwitchAPICallHandler: Copy string values to userFollowsString");
-		while(iterator1.hasNext()){//copy string values to userFollowsString
-			userFollowsString.add(iterator1.next().getChannel().getName());
-			//System.out.println("TemporaryCounterhas counted: " + ++temporaryCounter + " times");
-		}
+	//turn userfollows into lsit of strings
+		userFollowsString = convertUserFollowsToStringList(userFollows);
 		System.out.println("TwitchAPICallHandler: userFollowsString.size(): " + userFollowsString.size());
+	//fetch list channels a user follows already in cassandra database
 		System.out.println("TwitchAPICallHandler: Fetching channels that " + username + " already follows in my database");
-		ResultSet queryResults = CassandraDriver.selectFollow(username);//get user follwos already in databsae
+		ResultSet queryResults = CassandraDriver.selectFollow(username);
 		System.out.println("TwitchAPICallHandler: quesryResults.all().size()" + queryResults.all().size());
-		Iterator<Row> iterator2 = queryResults.iterator();
-		while(iterator2.hasNext()){//if username already in database, don't add to list
-			String temp = iterator2.next().getString("channel");
-			if(!userFollowsString.contains("temp")){
-				channelsFollowedNotInDatabase.add(temp);
-			}
-		}
-		System.out.println("TwitchAPICallHandler: follows not already in databse: " + channelsFollowedNotInDatabase.size());
-
-		System.out.println("TwitchAPICallHandler: Translating channelsFollowedNotInDatabase from string to Follow");
-		iterator1 = userFollows.iterator(); //refresh iterator
-		while(iterator1.hasNext()){//this gives me a list of follows not alreayd in databse to uplaod
-			Follow tempFollow = iterator1.next();
-			if(channelsFollowedNotInDatabase.contains(tempFollow.getChannel().getName())){
-				userFollowsToInsertIntoDatabase.add(tempFollow);
-			}
-		}
+	//scrub userFollows of channels already in database
+		userFollowsToInsertIntoDatabase = convertResultSetToCleanFollowList(userFollows, queryResults);
 		System.out.println("TwitchAPICallHandler: userFollowsToInsertIntoDatabase.size()" + userFollowsToInsertIntoDatabase.size());
-			//fetch follows older than 24 hours or that don't exist
-			//insert new follows into channel
+	//insert remaining users follows
 		System.out.println("TwitchAPICallHandler: Cassandra threaded insert");
 		if(userFollowsToInsertIntoDatabase.size() > 0){
 			System.out.println("TwitchAPICallHandler: Inserting userFollows into database");
 			CassandraDriver.threadedInsertFollowList(userFollowsToInsertIntoDatabase);
 			CassandraDriver.insertUserIntoAlreadyFetchedTable(username);
 		}
-		//fetch followers of that channel - this needs to be threaded and rate limited
-			//api call to fetch all users that supply weight to channels to be followed
-		//TODO make this check for cached items first...forreal IMPORTANT
+//level2
+	//fetch followers of each of the channels in userFollows
 
-		iterator1 = userFollows.iterator();
-		int tempI = 0;
-		System.out.println("TwitchAPICallHandler: Launching threads and adding them to lsitOfThreads");
-		while(iterator1.hasNext() && tempI < 50){
-			ThreadedTwitchWrapperGetUserChannelsFollowed thread = new ThreadedTwitchWrapperGetUserChannelsFollowed(iterator1.next().getChannel().getName());
-			listOfThreads.add(thread);
-			TwitchAPIRateLimiter.addElement(thread);
-			System.out.println("Creating thread " + ++tempI);
+	//this is where fresh code starts
+		
+		//check my database if the channels in userFollows are cached
+		userFollows = removeChannelsAlreadyInDatabase(new LinkedList<Follow>(userFollows));
+		
+		//enqueue the fetch with TwithAPIRateLimiter.enqueueFetchFromTwitchAndInsertIntoCassandra(channelName)
+			//this fetches the followers of each channel not already in databse
+		TwitchAPIRateLimiter.enqueueListToFetchFromTwitchAndInsertIntoCassandra(new LinkedList<Follow>(userFollows));
+		if (!TwitchAPIRateLimiter.isStarted()){
+			runMe.start();
 		}
 
-		//thread off Rate Limiter
-		TwitchAPIRateLimiter runMe = new TwitchAPIRateLimiter();
-		runMe.start();
+//level3
+	//TODO fetch channels follows by mutual followers of channels user at level1 follows
+	//this is where fresh code ends		
+
 		
 		System.out.println("TwitchAPICallHandler: listOfThreads.size()" + TwitchAPIRateLimiter.getNumberOfThreads() + " and it should be: " + userFollows.size() );
-		tempI = 0;
+		int tempI = 0;
 		while(!TwitchAPIRateLimiter.isEmpty() && tempI < 50){
 			System.out.println("TwitchAPICallHandler: TwitchAPIRateLimiter.getFinishedsize(): " + TwitchAPIRateLimiter.getFinishedSize() + " RUN#: " + tempI++);
 			if(TwitchAPIRateLimiter.getFinishedSize() > 0){
@@ -105,23 +85,57 @@ public final class TwitchAPICallHandler {
 				e.printStackTrace();
 			}
 		}
-		//populate channelFollowers with all followers of channels user follows
-//		Iterator<ThreadedTwitchWrapperGetUserChannelsFollowed> listOfThreadsIterator = listOfThreads.iterator();
-//		while(listOfThreadsIterator.hasNext()){
-//			channelFollowers.addAll(listOfThreadsIterator.next().getUserChannelsFollowedList());
-//		}
-		//CassandraDriver.threadedInsertFollowList(channelFollowers);
-		//fetch channels those followers follow
-			//check if channels in database already
-			//fetch follows older than 24 hours or that don't exist
-			//insert new follows into channel
-		
-		//use now updated databse to generate suggestions based on weight
-			//mutual following users follows provide +1
-			//possibly check ignore list....
-		
 		
 		return null;
+	}
+
+	private static List<Follow> removeChannelsAlreadyInDatabase(LinkedList<Follow> userFollows) {
+		//userFollows a destroyable copy
+		Iterator<Follow> iterator = userFollows.iterator();
+		while (iterator.hasNext()){
+			Follow next = iterator.next();
+			if(CassandraDriver.checkIfChannelFollowersAlreadyFetched(next.getChannel().getName().toLowerCase())){
+				userFollows.remove(next);
+			}
+		}
+		
+		return userFollows;
+	}
+
+
+	private static List<Follow> convertResultSetToCleanFollowList(List<Follow> userFollows, ResultSet queryResults) {
+		List<Follow> convertedFollowList = new LinkedList<Follow>();
+		List<String> channelsFollowedNotInDatabase = new LinkedList<String>();
+		Iterator<Row> iterator = queryResults.iterator();
+		while(iterator.hasNext()){//if username already in database, don't add to list
+			String temp = iterator.next().getString("channel");
+			if(!userFollowsString.contains(temp)){
+				channelsFollowedNotInDatabase.add(temp);
+			}
+		}
+		System.out.println("TwitchAPICallHandler: follows not already in databse: " + channelsFollowedNotInDatabase.size());
+
+		System.out.println("TwitchAPICallHandler: Translating channelsFollowedNotInDatabase from string to Follow");
+		Iterator<Follow> iterator1 = userFollows.iterator(); 
+		while(iterator1.hasNext()){//this gives me a list of follows not alreayd in databse to uplaod
+			Follow tempFollow = iterator1.next();
+			if(channelsFollowedNotInDatabase.contains(tempFollow.getChannel().getName())){
+				convertedFollowList.add(tempFollow);
+			}
+		}
+		return convertedFollowList;
+	}
+
+	private static List<String> convertUserFollowsToStringList(List<Follow> userFollows) {
+		Iterator<Follow> iterator1 = userFollows.iterator();
+		List<String> workingStringList = new LinkedList<String>();
+		//int temporaryCounter = 0;
+		System.out.println("TwitchAPICallHandler: Copy string values to userFollowsString");
+		while(iterator1.hasNext()){//copy string values to userFollowsString
+			workingStringList.add(iterator1.next().getChannel().getName());
+			//System.out.println("TemporaryCounterhas counted: " + ++temporaryCounter + " times");
+		}
+		return workingStringList;
 	}
 	
 }

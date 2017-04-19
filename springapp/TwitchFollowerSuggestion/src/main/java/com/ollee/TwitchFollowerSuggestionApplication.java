@@ -19,6 +19,8 @@ public class TwitchFollowerSuggestionApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(TwitchFollowerSuggestionApplication.class, args);
 		CassandraDriver.initializeCassandra();
+	
+		
 	}
 	
 	
