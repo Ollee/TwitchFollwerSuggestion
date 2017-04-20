@@ -35,7 +35,7 @@ public final class TwitchAPICallHandler {
 		ResultSet queryResults = CassandraDriver.selectFollow(username);
 		System.out.println("TwitchAPICallHandler: quesryResults.all().size()" + queryResults.all().size());
 	//scrub userFollows of channels already in database
-		userFollowsToInsertIntoDatabase = convertResultSetToCleanFollowList(userFollows, queryResults);
+		userFollowsToInsertIntoDatabase = (userFollows, queryResults);
 		System.out.println("TwitchAPICallHandler: userFollowsToInsertIntoDatabase.size()" + userFollowsToInsertIntoDatabase.size());
 	//insert remaining users follows
 		System.out.println("TwitchAPICallHandler: Cassandra threaded insert");
@@ -58,33 +58,36 @@ public final class TwitchAPICallHandler {
 		if (!TwitchAPIRateLimiter.isStarted()){
 			runMe.start();
 		}
-
 //level3
 	//TODO fetch channels follows by mutual followers of channels user at level1 follows
-	//this is where fresh code ends		
 
 		
-		System.out.println("TwitchAPICallHandler: listOfThreads.size()" + TwitchAPIRateLimiter.getNumberOfThreads() + " and it should be: " + userFollows.size() );
-		int tempI = 0;
-		while(!TwitchAPIRateLimiter.isEmpty() && tempI < 50){
-			System.out.println("TwitchAPICallHandler: TwitchAPIRateLimiter.getFinishedsize(): " + TwitchAPIRateLimiter.getFinishedSize() + " RUN#: " + tempI++);
-			if(TwitchAPIRateLimiter.getFinishedSize() > 0){
-				System.out.println("TwitchAPICallHandler: getFinishedSize() was > 0, fetching ThreadedTwitchWrapperGetUserChannelsFollowed object"); 
-				ThreadedTwitchWrapperGetUserChannelsFollowed finishedQuery = TwitchAPIRateLimiter.getFinished();
-				System.out.println("TwitchAPICallHandler: fetching list from finishedQuery");
-				List<Follow> channelFollows = finishedQuery.getUserChannelsFollowedList();
-				System.out.println("TwitchAPICallHandler: channelFollows.size(): " + channelFollows.size() + " Attempting to threadedinsert");
-				CassandraDriver.threadedInsertFollowList(channelFollows);
-				tempI++;
-			}
-			//System.out.println("TwitchAPICallHandler: Hung up waiting threads to finish");
-			System.out.println("TwitchAPICallHandler: There are currently threads n = " + TwitchAPIRateLimiter.getNumberOfThreads());
-			try {//wait for threads to end
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
+		
+	//this is where fresh code ends		
+
+		System.out.println("Anything after this is probably broken");
+		
+//		System.out.println("TwitchAPICallHandler: listOfThreads.size()" + TwitchAPIRateLimiter.getNumberOfThreads() + " and it should be: " + userFollows.size() );
+//		int tempI = 0;
+//		while(!TwitchAPIRateLimiter.isEmpty() && tempI < 50){
+//			System.out.println("TwitchAPICallHandler: TwitchAPIRateLimiter.getFinishedsize(): " + TwitchAPIRateLimiter.getFinishedSize() + " RUN#: " + tempI++);
+//			if(TwitchAPIRateLimiter.getFinishedSize() > 0){
+//				System.out.println("TwitchAPICallHandler: getFinishedSize() was > 0, fetching ThreadedTwitchWrapperGetUserChannelsFollowed object"); 
+//				ThreadedTwitchWrapperGetUserChannelsFollowed finishedQuery = TwitchAPIRateLimiter.getFinished();
+//				System.out.println("TwitchAPICallHandler: fetching list from finishedQuery");
+//				List<Follow> channelFollows = finishedQuery.getUserChannelsFollowedList();
+//				System.out.println("TwitchAPICallHandler: channelFollows.size(): " + channelFollows.size() + " Attempting to threadedinsert");
+//				CassandraDriver.threadedInsertFollowList(channelFollows);
+//				tempI++;
+//			}
+//			//System.out.println("TwitchAPICallHandler: Hung up waiting threads to finish");
+//			System.out.println("TwitchAPICallHandler: There are currently threads n = " + TwitchAPIRateLimiter.getNumberOfThreads());
+//			try {//wait for threads to end
+//				Thread.sleep(1000);
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}
+//		}
 		
 		return null;
 	}

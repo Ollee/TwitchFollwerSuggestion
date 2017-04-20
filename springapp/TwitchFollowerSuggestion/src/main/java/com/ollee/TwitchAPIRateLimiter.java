@@ -70,12 +70,14 @@ public final class TwitchAPIRateLimiter implements Runnable {
 
 	public static void addDone(ThreadedTwitchWrapperGetUserChannelsFollowed done) {
 		System.out.println("TwitchAPIRateLimiter: finished thread added: " + done.getUsername() + " with channels size: " + done.getUserChannelsFollowedList().size());
+		CassandraDriver.insertFollowList(done.getUserChannelsFollowedList());
 		finishedUserFollows.offer(done);
 	}
 	
 	public static int getFinishedSize(){
 		return finishedUserFollows.size();
 	}
+	
 	public static ThreadedTwitchWrapperGetUserChannelsFollowed getFinished(){
 		if(finishedUserFollows.size() == 0){
 			return null;
@@ -89,7 +91,7 @@ public final class TwitchAPIRateLimiter implements Runnable {
 		Follow follow = null;
 		while(iterator.hasNext()){
 			follow = iterator.next();
-			System.out.println("TwithcAPIRateLimiter: Enqueueing fetch channel followS: " + follow.getChannel().getName().toLowerCase());
+			System.out.println("TwithcAPIRateLimiter: Enqueueing fetch channel followS: " + follow.getChannel().getName().toLowerCase() + " queue size: " + masterUserFollows.size());
 			addElement(new ThreadedTwitchWrapperGetUserChannelsFollowed(follow.getChannel().getName().toLowerCase()));
 		}
 	}
