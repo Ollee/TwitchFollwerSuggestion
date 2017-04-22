@@ -1,4 +1,4 @@
-package com.ollee;
+package com.ollee.deprecated;
 
 import java.time.Instant;
 import java.util.Date;
@@ -47,14 +47,14 @@ public final class CassandraDriver {
 		}
 	}
 
-	private static void deleteRow(String follower) {
-		System.out.print("CassandraDriver: Attempting query:  DELETE FROM follows WHERE follower= '" + follower.toLowerCase() + "';");
-		try{
-			session.execute("DELETE FROM follows WHERE follower= '" + follower.toLowerCase() + "';");
-		} catch (Exception e){
-			System.out.println("CassandraDriver: DELETE FROM follows WHERE follower = '" + follower.toLowerCase() + "'; failed with exception: " + e.getMessage());
-		}
-	}
+//	private static void deleteRow(String follower) {
+//		System.out.print("CassandraDriver: Attempting query:  DELETE FROM follows WHERE follower= '" + follower.toLowerCase() + "';");
+//		try{
+//			session.execute("DELETE FROM follows WHERE follower= '" + follower.toLowerCase() + "';");
+//		} catch (Exception e){
+//			System.out.println("CassandraDriver: DELETE FROM follows WHERE follower = '" + follower.toLowerCase() + "'; failed with exception: " + e.getMessage());
+//		}
+//	}
 	
 	public static List<Follow> selectFollow(String follower) {
 		System.out.println("CassandraDriver: Attempting query: SELECT * FROM follows WHERE follower='" + follower.toLowerCase() + "';");
@@ -86,16 +86,16 @@ public final class CassandraDriver {
 		return followsList;
 	}
 	
-	private static ResultSet selectFollowerAndChannel(String follower, String channel){
-		ResultSet result = null;
-		System.out.println("CassandraDriver: Trying to find follow event of follower: " + follower + " and channel: " + channel);
-		try {
-			result = session.execute("SELECT * FROM follows WHERE follower='" + follower.toLowerCase() + "' AND channel='" + channel.toLowerCase() + "' ALLOW FILTERING;");
-		} catch(Exception e){
-			System.out.println("CassandraDriver: SELECT follower: " + follower.toLowerCase() + " and channel: " + channel.toLowerCase() + " from follows threw error: " + e.getMessage());
-		}
-		return result;
-	}
+//	private static ResultSet selectFollowerAndChannel(String follower, String channel){
+//		ResultSet result = null;
+//		System.out.println("CassandraDriver: Trying to find follow event of follower: " + follower + " and channel: " + channel);
+//		try {
+//			result = session.execute("SELECT * FROM follows WHERE follower='" + follower.toLowerCase() + "' AND channel='" + channel.toLowerCase() + "' ALLOW FILTERING;");
+//		} catch(Exception e){
+//			System.out.println("CassandraDriver: SELECT follower: " + follower.toLowerCase() + " and channel: " + channel.toLowerCase() + " from follows threw error: " + e.getMessage());
+//		}
+//		return result;
+//	}
 	
 	// keeping for support of insertFollowList(List<Follow followsList)
 	public static int insertFollow(String follower, String channel){
@@ -192,6 +192,13 @@ public final class CassandraDriver {
 			System.out.println("CassandraDriver: SELECT " + channelName.toLowerCase() + " FROM channelfollowersfetched threw and error: " + e.getMessage());
 		}
 
+//		Iterator<Row> tempiterator = resultList.iterator();
+//		Row tempRow = null;
+//		while(tempiterator.hasNext()){
+//			tempRow = tempiterator.next();
+//			System.out.println("CassandraDriver checkiffollowersalreadyfetchedrow: " + tempRow.toString());
+//		}
+		
 		if(resultList == null){//check if there even is a result
 			return false;
 		}else  {

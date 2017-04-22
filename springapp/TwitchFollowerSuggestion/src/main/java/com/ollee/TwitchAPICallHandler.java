@@ -1,13 +1,13 @@
 package com.ollee;
 
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
+import com.ollee.deprecated.TwitchAPIRateLimiter;
 
 import me.philippheuer.twitch4j.model.Channel;
 import me.philippheuer.twitch4j.model.Follow;
@@ -17,129 +17,198 @@ public final class TwitchAPICallHandler {
 	private static List<Follow> userFollowsToInsertIntoDatabase = new LinkedList<Follow>();
 	private static List<Follow> channelFollowers = new LinkedList<Follow>();
 	private static TwitchAPIRateLimiter runMe = new TwitchAPIRateLimiter();
+	private static List<String> channelsAlreadyInChannelsDatabase = new LinkedList<String>();
+	private static Map<String, Long> channelFollowerCounts = new HashMap<String, Long>();
 
 	public TwitchAPICallHandler(){
 	}
 	
 	public static List<Channel> fetchChannelSuggestions(String username){
+		
+		channelsAlreadyInChannelsDatabase = CassandraDriver2.getListOfChannelsAlreadyInDatabase();
+		
+		TwitchAPICallHandler.updateChannelFollowerCounts();
 //level1
 	//fetch channels user follows
-		List<Follow> userFollows = null;
-		System.out.println("TwitchAPICallHandler: Fetching channels that " + username + " follows.");
-		if(!CassandraDriver.checkIfUserChannelsFollowedAlreadyFetched(username)){
-			userFollows = TwitchWrapper.getUserChannelsFollowed(username);
-			System.out.println("TwitchAPICallHandler: userfollows size(): " + userFollows.size());
-		//fetch list channels a user follows already in cassandra database
-			System.out.println("TwitchAPICallHandler: Fetching channels that " + username + " already follows in my database");
-		//scrub userFollows of channels already in database
-			userFollowsToInsertIntoDatabase = convertResultListToCleanFollowList(new LinkedList<Follow>(userFollows), CassandraDriver.selectFollow(username));
-			System.out.println("TwitchAPICallHandler: userFollowsToInsertIntoDatabase.size()" + userFollowsToInsertIntoDatabase.size());
-		//insert remaining users follows
-			System.out.println("TwitchAPICallHandler: Cassandra threaded insert. userFollowsToInsertIntoDatabse.size(): " + userFollowsToInsertIntoDatabase.size());
-			if(userFollowsToInsertIntoDatabase.size() > 0){
-				System.out.println("TwitchAPICallHandler: Inserting userFollows into database");
-				CassandraDriver.threadedInsertFollowList(userFollowsToInsertIntoDatabase);
-				CassandraDriver.insertUserIntoAlreadyFetchedTable(username);
-			}
+		List<String> userFollows = null;
+		
+		if(!channelsAlreadyInChannelsDatabase.contains(username)){
+			userFollows = TwitchWrapper.getUserChannelsFollowsAsString(username);
+			CassandraDriver2.insertFollowList(username, userFollows, true);
 		} else{
-			userFollows = CassandraDriver.selectFollow(username);
-			System.out.println("TwitchAPICallHandler: user was already in database");
+			userFollows = CassandraDriver2.getFollowList(username);
 		}
+		
+//		userFollows = userFollows.subList(0, 4);//debug reduce size of follows list to make testing faster
 //level2
 	//fetch followers of each of the channels in userFollows
 
+		//remove channels with more than 10,000 followers
+		userFollows.removeAll(TwitchAPICallHandler.getChannelFollowersOverLong(channelFollowerCounts, new Long(10000)));
+		//remove followers already in cassandra from a copy of user follows
+		List<String> channelsToFetchFollowersOf = removeChannelsAlreadyInDatabase(new LinkedList<String>(userFollows));
+		System.out.println("after Remove channels: " + channelsToFetchFollowersOf.size());
+		Map<String, List<String>> level2Map = null; 
+		//if there are any channels in userFollows, fetch them from twitch and insert to cassandra
+		if(!channelsToFetchFollowersOf.isEmpty()){
+			//this initiates twithc api calls for things not already fetched
+			level2Map =  fetchFollowersOfListOfStringChannels(channelsToFetchFollowersOf);
+			//so if this runs, level2Map has queries already run to twitch and inserted into cassandra
+		} 
+		
+		List<String> level2ToFetchFromCassandra = new LinkedList<String>();
+		//create list of remaining to fetch from cassandra
+		if(level2Map.isEmpty()){
+			//if map is empty candidate list = user follows
+			level2ToFetchFromCassandra = new LinkedList<String>(userFollows);
+		} else{
+			//if map not empty, create candidate list to fetch from cassandra
+			List<String> copyOfUserFollows = new LinkedList<String>(userFollows);
+			copyOfUserFollows.removeAll(level2Map.keySet()); //remove all keys in level2Map from copyOfUserFollows
+			level2ToFetchFromCassandra.addAll(copyOfUserFollows);
+		}
+
+		level2Map.putAll(CassandraDriver2.getChannelFollowerMap(level2ToFetchFromCassandra));
+		
+		System.out.println("level2Map dump");
+		Iterator<String> tempIter = level2Map.keySet().iterator();
+		String key = "";
+		while(tempIter.hasNext()){
+			key = tempIter.next();
+			System.out.println("Key: " + key + " : " + level2Map.get(key));
+		}
+		//level2Map should now have all followers of the channels I follow...now to test
+		
+		//now I need to fetch all the channels that users of level2Map have
+		//first check for duplicates
+		
+		
 	//this is where fresh code starts
 
-		
-		//check my database if the channels in userFollows are cached
-		List<Follow> userFollowsToInsertIntoCassandra = removeChannelsAlreadyInDatabase(new LinkedList<Follow>(userFollows));
-		System.out.println("TwitchAPICallHandler: userFollows: " + userFollows.size() + " to be inserted: " + userFollowsToInsertIntoCassandra.size());
-		//enqueue the fetch with TwithAPIRateLimiter.enqueueFetchFromTwitchAndInsertIntoCassandra(channelName)
-			//this fetches the followers of each channel not already in databse
-		
-		TwitchAPIRateLimiter.enqueueListToFetchFromTwitchAndInsertIntoCassandra(userFollowsToInsertIntoCassandra.subList(0, 1));
-		if (!TwitchAPIRateLimiter.isStarted()){
-			runMe.start();
-		}
+//		System.out.println("userFollows.size: " + userFollows.size());
+//		//check my database if the channels in userFollows are cached
+//		List<Follow> userFollowsToInsertIntoCassandra = null;
+////		if(level1InsertedFlag == true){
+//////			userFollowsToInsertIntoCassandra = new LinkedList<Follow>(userFollows);
+////		}	else{
+//////			userFollowsToInsertIntoCassandra = removeChannelsAlreadyInDatabase(new LinkedList<Follow>(userFollows));
+////		}
+//		System.out.println("TwitchAPICallHandler: userFollows: " + userFollows.size() + " to be inserted: " + userFollowsToInsertIntoCassandra.size());
+//		//enqueue the fetch with TwithAPIRateLimiter.enqueueFetchFromTwitchAndInsertIntoCassandra(channelName)
+//			//this fetches the followers of each channel not already in databse
+//		System.out.println("userFollowsToInsertIntoCassandra.size: " + userFollowsToInsertIntoCassandra.size());
+//		if(!userFollowsToInsertIntoCassandra.isEmpty()){
+//			System.out.println("userFollowsToInsertIntoCassandra.isEmpty: false");
+//			TwitchAPIRateLimiter.enqueueListToFetchFromTwitchAndInsertIntoCassandra(userFollowsToInsertIntoCassandra.subList(0, 50));
+//		}
+//		if (!TwitchAPIRateLimiter.isStarted()){
+//			runMe.start();
+//		}
+//		
 //level3
 	//TODO fetch channels follows by mutual followers of channels user at level1 follows
-
+		
 		
 		
 	//this is where fresh code ends		
 
-//		System.out.println("Anything after this is probably broken");
-		
-//		System.out.println("TwitchAPICallHandler: listOfThreads.size()" + TwitchAPIRateLimiter.getNumberOfThreads() + " and it should be: " + userFollows.size() );
-//		int tempI = 0;
-//		while(!TwitchAPIRateLimiter.isEmpty() && tempI < 50){
-//			System.out.println("TwitchAPICallHandler: TwitchAPIRateLimiter.getFinishedsize(): " + TwitchAPIRateLimiter.getFinishedSize() + " RUN#: " + tempI++);
-//			if(TwitchAPIRateLimiter.getFinishedSize() > 0){
-//				System.out.println("TwitchAPICallHandler: getFinishedSize() was > 0, fetching ThreadedTwitchWrapperGetUserChannelsFollowed object"); 
-//				ThreadedTwitchWrapperGetUserChannelsFollowed finishedQuery = TwitchAPIRateLimiter.getFinished();
-//				System.out.println("TwitchAPICallHandler: fetching list from finishedQuery");
-//				List<Follow> channelFollows = finishedQuery.getUserChannelsFollowedList();
-//				System.out.println("TwitchAPICallHandler: channelFollows.size(): " + channelFollows.size() + " Attempting to threadedinsert");
-//				CassandraDriver.threadedInsertFollowList(channelFollows);
-//				tempI++;
-//			}
-//			//System.out.println("TwitchAPICallHandler: Hung up waiting threads to finish");
-//			System.out.println("TwitchAPICallHandler: There are currently threads n = " + TwitchAPIRateLimiter.getNumberOfThreads());
-//			try {//wait for threads to end
-//				Thread.sleep(1000);
-//			} catch (InterruptedException e) {
-//				e.printStackTrace();
-//			}
-//		}
 		
 		return null;
 	}
 
-	private static List<Follow> removeChannelsAlreadyInDatabase(LinkedList<Follow> userFollows) {
-		//userFollows a destroyable copy
-		Follow next = null;
-		Iterator<Follow> iterator = userFollows.iterator();
-		while (iterator.hasNext()){
-			next = iterator.next();
-			if(CassandraDriver.checkIfChannelFollowersAlreadyFetched(next.getChannel().getName().toLowerCase())){
-				System.out.println("removechannelsalreadyindatabse: " + next.getChannel().getName() + " was in the database");
-				userFollows.remove(next);
-			}
-		}
-		
-		return userFollows;
-	}
-
-
-	private static List<Follow> convertResultListToCleanFollowList(List<Follow> userFollows, List<Follow> existingFollows) {
-		//TODO make this deal with unfollows but for now lets go for functionalish
-		Iterator<Follow> iteratorToString = existingFollows.iterator();
-		List<String> stringListToRemove = new LinkedList<String>();
-		while(iteratorToString.hasNext()){
-			stringListToRemove.add(iteratorToString.next().getChannel().getName().toLowerCase());
-		}
-		Iterator<Follow> iter = userFollows.iterator();
-		Follow workingFollow = null;
+	private static List<String> getChannelFollowersOverLong(Map<String, Long> map, Long cutoff) {
+		String key;
+		List<String> toRemove = new LinkedList<String>();
+		Iterator<String> iter = map.keySet().iterator();
 		while(iter.hasNext()){
-			workingFollow=iter.next();
-			if(stringListToRemove.contains(workingFollow.getChannel().getName().toLowerCase())){
-				userFollows.remove(workingFollow);
+			key = iter.next();
+			if(map.get(key) > cutoff){
+				System.out.println("Rmemoving : " + key + " from list");
+				toRemove.add(key);
+			}
+		}
+		return toRemove;
+	}
+
+	private static void updateChannelFollowerCounts() {
+		channelFollowerCounts = CassandraDriver2.getChannelFollowerCounts();
+	}
+
+	private static Map<String, List<String>> fetchFollowersOfListOfStringChannels(List<String> channelsToFetchFollowersOf) {
+		System.out.println("TwitchAPICallHandler: fetchFollowersOfListOfStringChannels " + channelsToFetchFollowersOf.size());
+		Map<String, List<String>> map = new HashMap<String,List<String>>();
+		List<String> workingList = null;
+		Iterator<String> iter = channelsToFetchFollowersOf.iterator();
+		String key = "";
+		while(iter.hasNext()){
+			System.out.println(key);
+			key = iter.next();
+			if(TwitchWrapper.getFollowerCount(key) < new Long(10000)){
+				workingList = TwitchWrapper.getChannelFollowersAsString(key);
+				if(workingList != null){
+					map.put(key, workingList);
+					CassandraDriver2.insertChannelFollowerList(key, workingList, true);
+				}
+			} else{
+				System.out.println("Skipping on: " + key + " because followerCount > 10000");
 			}
 		}
 		
-		return userFollows;
+		
+		return map;
 	}
 
-	private static List<String> convertUserFollowsToStringList(List<Follow> userFollows) {
-		Iterator<Follow> iterator1 = userFollows.iterator();
-		List<String> workingStringList = new LinkedList<String>();
-		//int temporaryCounter = 0;
-		System.out.println("TwitchAPICallHandler: Copy string values to userFollowsString");
-		while(iterator1.hasNext()){//copy string values to userFollowsString
-			workingStringList.add(iterator1.next().getChannel().getName());
-			//System.out.println("TemporaryCounterhas counted: " + ++temporaryCounter + " times");
+	private static List<String> extractChannelNamesAsStringList(List<Follow> followList) {
+		System.out.println("TwitchAPICallHandler: extractChannelNameAsString " + followList.size());
+		Iterator<Follow> iter = followList.iterator();
+		List<String> stringList = new LinkedList<String>();
+		while(iter.hasNext()){
+			stringList.add(iter.next().getChannel().getName().toLowerCase());
 		}
-		return workingStringList;
+		return stringList;
 	}
 	
+	private static List<String> extractFollowerNamesAsStringList(List<Follow> followList) {
+		System.out.println("TwitchAPICallHandler: extractFollowerNamesAsStringList: " + followList.size());
+		Iterator<Follow> iter = followList.iterator();
+		List<String> stringList = new LinkedList<String>();
+		String next = "";
+		while(iter.hasNext()){
+			next = iter.next().getChannel().getName().toLowerCase();
+//			System.out.println("TwitchAPICallHandler: extractFollowerNamesAsStringList: next: " + next);
+			stringList.add(next);
+		}
+		return stringList;
+	}
+
+	private static List<String> removeChannelsAlreadyInDatabase(List<String> linkedList) {
+		System.out.println("TwitchAPICallHandler: removeChannelsAlreadyInDatabase: " + linkedList.size());
+//		List<String> toRemove = new LinkedList<String>();
+//		for(String str : linkedList){
+//			if(CassandraDriver2.checkIfChannelFollowersAlreadyFetched(str)){
+//				toRemove.add(str);
+//			}
+//		}
+		
+		linkedList.removeAll(channelsAlreadyInChannelsDatabase);
+//		linkedList.removeAll(toRemove);
+//		
+//		Iterator<String> iterator = linkedList.iterator();
+//		while (iterator.hasNext()){
+//			String next = iterator.next();
+//			if(CassandraDriver2.checkIfChannelFollowersAlreadyFetched(next.toLowerCase())){
+//				linkedList.remove(next);
+//			}
+//		}
+//		
+		
+		return linkedList;
+	}
+
+	public static void addToChannelFollowerCounts(String channel, Long followerCount) {
+		channelFollowerCounts.put(channel, followerCount);
+	}
+
 }
+
+//System.out.println("TwitchAPICallHandler: ");

@@ -1,4 +1,4 @@
-package com.ollee;
+package com.ollee.deprecated;
 
 public class ThreadedInsert implements Runnable {
 	private Thread t;

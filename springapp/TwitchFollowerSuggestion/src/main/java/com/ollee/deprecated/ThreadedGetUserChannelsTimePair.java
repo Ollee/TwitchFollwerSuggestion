@@ -1,4 +1,4 @@
-package com.ollee;
+package com.ollee.deprecated;
 
 import java.time.Instant;
 import java.util.Date;

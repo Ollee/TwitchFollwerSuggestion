@@ -1,8 +1,10 @@
-package com.ollee;
+package com.ollee.deprecated;
 
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+
+import com.ollee.TwitchWrapper;
 
 import lombok.Getter;
 import me.philippheuer.twitch4j.model.Channel;
