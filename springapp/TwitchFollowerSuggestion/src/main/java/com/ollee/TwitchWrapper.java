@@ -15,16 +15,9 @@ import me.philippheuer.twitch4j.model.User;
 public final class TwitchWrapper {
 	private static String clientID = "5uuaaq02y9fv6j7phunakg0uoo5xu71";
 	private static String clientSecret = "e17btqxk3f85piyf66zvlbmwfi5oc2";
-	private static TwitchClient twitchClient;
+	private static TwitchClient twitchClient = new TwitchClient(TwitchWrapper.getClientID(), TwitchWrapper.getClientSecret());
 	
 	public TwitchWrapper() {
-		try{
-			twitchClient = new TwitchClient(TwitchWrapper.getClientID(), TwitchWrapper.getClientSecret());
-			}
-		catch (Exception e){
-			System.out.println("TwitchWrapper: Exception caught from TwitchClient: " + e.toString());
-			e.printStackTrace();
-			}
 	}
 	public static Channel getChannelObject(String channelName){
 		return twitchClient.getChannelEndpoint(channelName).getChannel();

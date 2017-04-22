@@ -70,7 +70,7 @@ public final class TwitchAPIRateLimiter implements Runnable {
 
 	public static void addDone(ThreadedTwitchWrapperGetUserChannelsFollowed done) {
 		System.out.println("TwitchAPIRateLimiter: finished thread added: " + done.getUsername() + " with channels size: " + done.getUserChannelsFollowedList().size());
-		CassandraDriver.insertFollowList(done.getUserChannelsFollowedList());
+		CassandraDriver.threadedInsertFollowList((done.getUserChannelsFollowedList()));
 		finishedUserFollows.offer(done);
 	}
 	

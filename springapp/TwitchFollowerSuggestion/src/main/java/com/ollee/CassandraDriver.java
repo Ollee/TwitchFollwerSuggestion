@@ -15,7 +15,9 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 
 import lombok.Getter;
+import me.philippheuer.twitch4j.model.Channel;
 import me.philippheuer.twitch4j.model.Follow;
+import me.philippheuer.twitch4j.model.User;
 
 public final class CassandraDriver {
 	
@@ -54,7 +56,7 @@ public final class CassandraDriver {
 		}
 	}
 	
-	public static ResultSet selectFollow(String follower) {
+	public static List<Follow> selectFollow(String follower) {
 		System.out.println("CassandraDriver: Attempting query: SELECT * FROM follows WHERE follower='" + follower.toLowerCase() + "';");
 		ResultSet result = null;
 		try {
@@ -62,7 +64,26 @@ public final class CassandraDriver {
 		} catch (Exception e){
 			System.out.println("CassandraDriver: SELECT " + follower.toLowerCase() + " FROM follows threw and error: " + e.getMessage());
 		}
-		return result;
+		
+		List<Follow> followsList = new LinkedList<Follow>();
+		Follow workingFollow = null;
+		Channel workingChannel = null;
+		User workingUser = null;
+		Row oneRow = result.one();
+		while(oneRow != null){
+			//System.out.println("CassandraDriver: oneRow: " + oneRow.toString());
+			workingFollow = new Follow();
+			workingChannel = new Channel();
+			workingUser = new User();
+			workingChannel.setName(oneRow.getString("channel"));
+			workingUser.setName(oneRow.getString("follower"));
+			workingFollow.setChannel(workingChannel);
+			workingFollow.setUser(workingUser);
+
+			followsList.add(workingFollow);
+			oneRow = result.one();
+		}
+		return followsList;
 	}
 	
 	private static ResultSet selectFollowerAndChannel(String follower, String channel){
@@ -112,13 +133,12 @@ public final class CassandraDriver {
 		//this stuff eliminates inserting duplicates
 		System.out.println("CassandraDriver: followsList.size(): " + followsList.size());
 		List<String> duplicates = new LinkedList<String>();
-		ResultSet results = selectFollow(followsList.get(0).getUser().getName().toLowerCase());
-		List<Row> resultSetList = new LinkedList<Row>(results.all());
-		System.out.println("CassandraDriver: Size of result set: " + resultSetList.size());
-		if(resultSetList.size() != 0){
-			Iterator<Row> resultSetIterator = resultSetList.iterator();
+		List<Follow> results = selectFollow(followsList.get(0).getUser().getName().toLowerCase());
+		System.out.println("CassandraDriver: Size of result set: " + results.size());
+		if(results.size() != 0){
+			Iterator<Follow> resultSetIterator = results.iterator();
 			while(resultSetIterator.hasNext()){
-				String s = resultSetIterator.next().getString("channel");
+				String s = resultSetIterator.next().getChannel().getName();
 				//System.out.println("CassandraDriver: candidate duplicate adding to list: " + s);
 				if(s != null){
 					duplicates.add(s.toLowerCase());
@@ -130,13 +150,13 @@ public final class CassandraDriver {
 			List<Follow> followsToRemove = new LinkedList<Follow>();
 			while(followsListIterator.hasNext()){
 				Follow next = followsListIterator.next();
-				System.out.println("CassandraDriver: Checking if duplicates contains next");
+				//System.out.println("CassandraDriver: Checking if duplicates contains next");
 				if(duplicates != null){
-					System.out.println("CassandraDriver: Duplicates is not null");
+					//System.out.println("CassandraDriver: Duplicates is not null");
 					if(next.getChannel().getName().toLowerCase() != null){
-						System.out.println("CassandraDriver: next channel name is not null");
+						//System.out.println("CassandraDriver: next channel name is not null");
 						if(duplicates.contains(next.getChannel().getName().toLowerCase())){
-							System.out.println("CassandraDriver: duplicates contains next");
+							//System.out.println("CassandraDriver: duplicates contains next");
 							followsToRemove.add(next);
 						}
 					}

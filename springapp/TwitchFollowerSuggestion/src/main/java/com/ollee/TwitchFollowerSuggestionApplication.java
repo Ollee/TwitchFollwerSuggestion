@@ -11,16 +11,17 @@ import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
+import me.philippheuer.twitch4j.TwitchClient;
+
 
 
 @SpringBootApplication
 public class TwitchFollowerSuggestionApplication {
 
+
 	public static void main(String[] args) {
 		SpringApplication.run(TwitchFollowerSuggestionApplication.class, args);
 		CassandraDriver.initializeCassandra();
-	
-		
 	}
 	
 	
