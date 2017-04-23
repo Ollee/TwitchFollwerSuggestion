@@ -52,12 +52,18 @@ public final class TwitchWrapper {
 						.stream().map(User::getName).collect(Collectors.toList());
 	}
 	
-		public static Long getFollowerCount(String channel){
-		ChannelEndpoint channelEndpoint = twitchClient.getChannelEndpoint(
-												twitchClient.getUserEndpoint().getUserIdByUserName(channel).get());
-		Long followerCount = channelEndpoint.getChannel().getFollowers();
-		CassandraDriver2.insertChannelFollowerCount(channel, followerCount);
-		TwitchAPICallHandler.addToChannelFollowerCounts(channel, followerCount); 
+	public static Long getFollowerCount(String channel){
+		Long followerCount = (long) 0;
+		try {
+			ChannelEndpoint channelEndpoint = twitchClient.getChannelEndpoint(
+													twitchClient.getUserEndpoint().getUserIdByUserName(channel).get());
+			followerCount = channelEndpoint.getChannel().getFollowers();
+			CassandraDriver2.insertChannelFollowerCount(channel, followerCount);
+			TwitchAPICallHandler.addToChannelFollowerCounts(channel, followerCount);
+		} catch (Exception e) {
+			System.out.println("TiwtchWrapper: getFollowerCount: caught exception");
+			e.printStackTrace();
+		} 
 		return followerCount;
 	}
 	
@@ -92,7 +98,15 @@ public final class TwitchWrapper {
 		}
 		return workingList;
 	}
-	
+	public static boolean channelExists(String username){
+		try {
+			twitchClient.getChannelEndpoint(username);
+		} catch (Exception e) {
+			return false;
+		}
+		
+		return true;
+	}
 
 
 	

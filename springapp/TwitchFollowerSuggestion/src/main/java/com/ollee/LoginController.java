@@ -1,5 +1,7 @@
 package com.ollee;
 
+import java.sql.Date;
+import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -15,7 +17,7 @@ import me.philippheuer.twitch4j.model.Channel;
 import me.philippheuer.twitch4j.model.Follow;
 
 @Controller
-@RequestMapping("/")
+@RequestMapping(value={"/","/error"})
 public class LoginController {
 	
 	@GetMapping("/")
@@ -30,18 +32,27 @@ public class LoginController {
 		// TODO check if valid username, if not return to /index, else run gather info code
 		
 		//gather info and return to usernameResult
-		ModelAndView mv = new ModelAndView("usernameResult");
-		//TwitchWrapper twitch = new TwitchWrapper();//replace this with threading controller
-		//List<Follow> userFollows = TwitchWrapper.getUserChannelsFollowed(username.getName());
-		//System.out.println("LoginController: " + username.getName() + " follows a number of users = " + userFollows.size());
+		ModelAndView mv = null;
 		
-		//CassandraDriver.threadedInsertFollowList(new LinkedList<Follow>(userFollows));
-		List<Channel> userFollows = TwitchAPICallHandler.fetchChannelSuggestions(username.getName());
+		if(TwitchWrapper.channelExists(username.getName())){
+			mv = new ModelAndView("usernameResult");
+			Long initial = Instant.now().getEpochSecond();
+			//CassandraDriver.threadedInsertFollowList(new LinkedList<Follow>(userFollows));
+			List<Channel> userFollows = TwitchAPICallHandler.fetchChannelSuggestions(username.getName());
+			Long post = Instant.now().getEpochSecond();
+			
+			System.out.println("This tooke this long in Seconds: " + (post - initial));
+			
+			mv.addObject("username", username);
+			mv.addObject("userfollows", userFollows);
+			System.out.println("LoginController: hit LoginController.greetingSubmit for user: " + username.getName());
+		} else {
+			mv = new ModelAndView("redirect:/");
+		}
 		
 		
-		mv.addObject("username", username);
-		mv.addObject("userfollows", userFollows);
-		System.out.println("LoginController: hit LoginController.greetingSubmit for user: " + username.getName());
 		return mv;
 	}
+	
+	
 }

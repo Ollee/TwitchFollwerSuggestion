@@ -3,11 +3,13 @@ package com.ollee;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.transport.DataType;
@@ -179,29 +181,43 @@ public final class CassandraDriver2 {
 			System.out.println("CassandraDriver2: SELECT FROM channels threw an error: " + e.getMessage());
 		}
 		
-		if(result != null && result.size() > 0){
-			System.out.println("getChannelFollowerList returned: " + result.get(0).toString());
-		} else {
-			System.out.println("getChannelFollowerList returned nothing john snuh");
-		}
-
-		Iterator<String> tokens = result.get(0).getSet("followers",  String.class).iterator();
+//		if(result != null && result.size() > 0){
+//			System.out.println("getChannelFollowerList returned: " + result.get(0).toString());
+//		} else {
+//			System.out.println("getChannelFollowerList returned nothing john snuh");
+//		}
+		
+		Iterator<Row> tokens = result.iterator();
+		Set<String> set = new HashSet<String>(); 
+		List<String> stringFromToken = null;
 		while(tokens.hasNext()){
-			returnList.add(tokens.next());
+			set = tokens.next().getSet("followers", String.class);
+			stringFromToken = new LinkedList<String>(set);
+			returnList.addAll(stringFromToken);
 		}
+		
+		System.out.println("CassandraDriver2.getChannelFollowerList: " + follower + " : " + returnList.size());
 		
 		return returnList;
 	}
 	
 	public static Map<String, List<String>> getChannelFollowerMap(List<String> list){
+		System.out.println("getChannelFollowerMap: " + list.size());
 		Map<String, List<String>> returnMap = new HashMap<String, List<String>>();
 		Iterator<String> iter = list.iterator();
+		List<String> workingList = null;
+		int counter = 0;
 		String key = "";
 		while(iter.hasNext()){
 			key = iter.next();
-			returnMap.put(key, CassandraDriver2.getChannelFollowerList(key));
+
+			System.out.println("Debug Index: " + list.indexOf(key) + " run counter: " + counter++ + " Key: " + key);
+			
+			workingList = CassandraDriver2.getChannelFollowerList(key);
+			if(!workingList.isEmpty()){
+				returnMap.put(key, workingList);
+			}
 		}
-		
 		return returnMap;
 	}
 	
@@ -279,6 +295,27 @@ public final class CassandraDriver2 {
 		}
 		
 		return map;
+	}
+
+	public static List<String> fetchAllChannelsInDatabse() {
+		List<Row> result = null;
+		List<String> returnList = new LinkedList<String>();
+		try {
+			result = session.execute("SELECT channelname from channels;").all();
+		} catch (Exception e) {
+			
+			e.printStackTrace();
+			return null;
+		}
+		
+		Iterator<Row> iter = result.iterator();
+		Row workingRow = null;
+		while(iter.hasNext()){
+			workingRow = iter.next();
+			returnList.add(workingRow.getString("channelname"));
+		}
+		
+		return returnList;
 	} 
 
 	
