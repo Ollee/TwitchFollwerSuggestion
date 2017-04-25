@@ -1,6 +1,8 @@
 package com.ollee;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.springframework.boot.SpringApplication;
@@ -46,7 +48,24 @@ public class TwitchFollowerSuggestionApplication {
 //			System.out.println("ollee64 is in followers table");
 //		} else{System.out.println("fail");
 //}
-	
+//	
+//		List<String> testList = new ArrayList<String>();
+//		testList.add("blah");
+//		CassandraDriver2.insertIntoChannels("test", testList);
+////
+//		for(int i = 0; i < 10; i++){
+//			testList.add("TestUser000" + i);
+//		}
+//		for(int i = 10; i < 100; i++){
+//			testList.add("TestUser00" + i);
+//		}
+//		for(int i = 100; i < 900; i++){
+//			testList.add("TestUser0" + i);
+//		}
+//		
+//		System.out.println("Test String: " + CassandraDriver2.jsonStringListString(testList));
+//		System.out.println("Inserting");
+//		CassandraDriver2.insertChannelFollowerList("testchannel", testList, true);
 	
 	}
 }

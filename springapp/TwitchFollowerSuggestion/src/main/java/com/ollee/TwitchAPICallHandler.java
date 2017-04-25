@@ -120,6 +120,7 @@ public final class TwitchAPICallHandler {
 		System.out.println("TwitchAPICallHandler: fetchFollowersOfListOfStringChannels " + listOfChannelsNotAlreadyInChannelsTable.size());
 		Map<String, List<String>> map = new HashMap<String,List<String>>();
 		List<String> workingList = null;
+		boolean doonce = false;
 		int runNumber = 1;
 		Iterator<String> iter = listOfChannelsNotAlreadyInChannelsTable.iterator();
 		String key = "";
@@ -130,17 +131,28 @@ public final class TwitchAPICallHandler {
 			keyFollowerCount = TwitchWrapper.getFollowerCount(key);
 			if(keyFollowerCount < followerCountCutoff && keyFollowerCount != 0){
 				workingList = TwitchWrapper.getChannelFollowersAsString(key);
+				System.out.println("TwitchAPICallHandler: fetchFollowersOfListOfStringChannels: workingList.size(): " + workingList.size());
 				if(workingList != null){
 					if(workingList.size() > 0){
 						map.put(key, workingList);
 						CassandraDriver2.insertChannelFollowerList(key, workingList, true);
+						//debug code
+						if(workingList.size() > 150 && !doonce){
+							List<String> tempList = CassandraDriver2.getChannelFollowerList(key);//this might be returning only 100 elemtns
+							Iterator<String> tempIter = tempList.iterator();
+							System.out.println("TEMP DEBUG KEYLIST DUMP SIZE: " + workingList.size() + " should == " + tempList.size());
+							while(tempIter.hasNext()){
+								System.out.println("TEST DEBUG KEYLIST DUMP: " + tempIter.next());
+							}
+							doonce = true;
+						} //end debug
 					}
 				}
 			} else{
 				System.out.println("Skipping on: " + key + " because followerCount > " + followerCountCutoff + " or list 0");
 			}
 		}
-		
+	
 		
 		return map;
 	}

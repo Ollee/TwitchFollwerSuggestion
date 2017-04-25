@@ -5,23 +5,22 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.cassandra.transport.DataType;
-
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.SocketOptions;
+import com.datastax.driver.core.Statement;
 
 import lombok.Getter;
-import me.philippheuer.twitch4j.model.Channel;
 import me.philippheuer.twitch4j.model.Follow;
 import me.philippheuer.twitch4j.model.User;
 
@@ -119,13 +118,16 @@ public final class CassandraDriver2 {
 		return workingString;
 	}
 
-	private static String jsonStringListString(List<String> channelsFollowed) {
+	public static String jsonStringListString(List<String> channelsFollowed) {
 		String workingString = "{";
 		System.out.println("jsonfollowingstring: channelsfollows.size: " + channelsFollowed.size());
 		Iterator<String> iter = channelsFollowed.iterator();
+		int numberofruns = 0;
 		while(iter.hasNext()){
+			numberofruns++;
 			workingString+="'";
-			workingString+=iter.next().toLowerCase();
+			String next = iter.next();
+			workingString+=next.toLowerCase();
 			if(iter.hasNext()){
 				workingString+="',";
 			} else{
@@ -133,29 +135,53 @@ public final class CassandraDriver2 {
 			}
 		}
 		
-//		System.out.println("workingString: " + workingString);
+		
+		System.out.println("after a number of runs: " + numberofruns + " workingString is: " + workingString);
 		return workingString;
 	}
 
-	public static void insertChannelFollowerList(String follower, List<Follow> channelsFollowed){
-		System.out.println("CassandraDriver2: Inserting Channel Followers by Follow List: " + follower);
+	public static void insertChannelFollowerList(String channelname, List<Follow> followerList){
+		System.out.println("CassandraDriver2: Inserting Channel Followers by Follow List: " + channelname);
 		try {
-			session.execute("INSERT INTO " + channelTable + " (channelname, followers, timestamp) VALUES ('" +
-								follower + "',"+ 
-								jsonFollowingListString(channelsFollowed) + ", '" + 
-								Date.from(Instant.now()).getTime() +"');");
+			String jsonBuilder = jsonFollowingListString(followerList);
+			System.out.println("JsonBUILDER: " + jsonBuilder);
+			
+			insertIntoChannels(channelname, followerList.stream().map(Follow::getUser).collect(Collectors.toList())
+					.stream().map(User::getName).collect(Collectors.toList()));
+//			session.execute("INSERT INTO " + channelTable + " (channelname, followers, timestamp) VALUES ('" +
+//								channelname + "',"+ 
+//								jsonBuilder + ", '" + 
+//								Date.from(Instant.now()).getTime() +"');");
 		} catch (Exception e) {
 			System.out.println("CassandraDriver2: INSERT INTO followers threw and error: " + e.getMessage());
 		}
 	}	
 
-	public static void insertChannelFollowerList(String follower, List<String> channelsFollowed, boolean whatever){
-		System.out.println("CassandraDriver2: Inserting Channel Followers by String List: " + follower);
+	public static void insertIntoChannels(String channelName, List<String> followersList){
+		
+		Statement st = new SimpleStatement("INSERT INTO channels (channelname, followers) VALUES ('" + channelName + "', ?);", followersList);
+		session.execute(st);
+	}
+	
+	public static void insertChannelFollowerList(String channelname, List<String> followersList, boolean whatever){
+		System.out.println("CassandraDriver2: Inserting Channel Followers by String List: " + channelname + " and followerList.size " + followersList.size());
 		try {
-			session.execute("INSERT INTO " + channelTable + " (channelname, followers, timestamp) VALUES ('" +
-								follower + "',"+ 
-								jsonStringListString(channelsFollowed) + ", '" + 
-								Date.from(Instant.now()).getTime() +"');");
+			String jsonBuilder = jsonStringListString(followersList);
+			System.out.println("JsonBUILDER: " + jsonBuilder);
+//			Insert insert = QueryBuilder.insertInto(keyspaceName, channelTable).value("channelname", channelname)
+//																			.value("followers", jsonBuilder)
+//																			.value("timestamp", Date.from(Instant.now()).getTime());
+//			session.execute(QueryBuilder.insertInto(channelTable).value("channelname", channelname).value("followers", jsonBuilder).value("timestamp", Date.from(Instant.now()).getTime()));
+			
+//			session.execute(QueryBuilder.insertInto(channelTable).value("channelname", channelname).json(jsonBuilder));
+			
+			insertIntoChannels(channelname, followersList);
+			
+			//for some reason the following is only inserting the first 100 elements of jsonbuilder when used in main algorithm...idk why.
+//			session.execute("INSERT INTO " + channelTable + " (channelname, followers, timestamp) VALUES ('" +
+//								channelname + "',"+ 
+//								jsonBuilder + ", '" + 
+//								Date.from(Instant.now()).getTime() +"');");
 		} catch (Exception e) {
 			System.out.println("CassandraDriver2: INSERT INTO followers threw and error: " + e.getMessage());
 		}
@@ -167,6 +193,7 @@ public final class CassandraDriver2 {
 		String key = "";
 		while(iter.hasNext()){
 			key = iter.next();
+			System.out.println("Inserting channel follower map for: " + key + " with followers#: " + map.get(key).size());
 			CassandraDriver2.insertChannelFollowerList(key, map.get(key), true);
 		}
 	}
@@ -186,7 +213,7 @@ public final class CassandraDriver2 {
 //		} else {
 //			System.out.println("getChannelFollowerList returned nothing john snuh");
 //		}
-		
+		System.out.println("BIG FUCKING DEBUG LINE " + result.size());
 		Iterator<Row> tokens = result.iterator();
 		Set<String> set = new HashSet<String>(); 
 		List<String> stringFromToken = null;
