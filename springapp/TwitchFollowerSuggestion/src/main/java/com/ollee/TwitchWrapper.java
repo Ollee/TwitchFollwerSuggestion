@@ -33,13 +33,13 @@ public final class TwitchWrapper {
 		ChannelEndpoint channelEndpoint = twitchClient.getChannelEndpoint(twitchClient.getUserEndpoint().getUserIdByUserName(channel).get());
 		Long followerCount = getFollowerCount(channel);
 		
-		System.out.println("TwitchWrapper: The channel: " + channelEndpoint.getChannel().getDisplayName() + " has followerCount: " + followerCount);
+		System.out.println("TwitchWrapper: The channel: " + channelEndpoint.getChannel().getName() + " has followerCount: " + followerCount);
 		
 //		List<Follow> follows = populateListFollowWithChannel(
 //								channelEndpoint.getFollowers(Optional.ofNullable(followerCount), Optional.empty()),
 //								channelEndpoint.getChannel());
 		List<Follow> follows = channelEndpoint.getFollowers(Optional.ofNullable(followerCount), Optional.empty());
-		System.out.println("1234: " + follows.get(0).toString());
+//		System.out.println("1234: " + follows.get(0).toString());
 		System.out.println("TwitchWrapper: The followers List of: " + channelEndpoint.getChannel().getName() + " has elements n = " + follows.size());
 
 		return follows;
@@ -58,7 +58,7 @@ public final class TwitchWrapper {
 			ChannelEndpoint channelEndpoint = twitchClient.getChannelEndpoint(
 													twitchClient.getUserEndpoint().getUserIdByUserName(channel).get());
 			followerCount = channelEndpoint.getChannel().getFollowers();
-			CassandraDriver2.insertChannelFollowerCount(channel, followerCount);
+			CassandraDriver3.insertChannelFollowerCount(channel, followerCount);
 			TwitchAPICallHandler.addToChannelFollowerCounts(channel, followerCount);
 		} catch (Exception e) {
 			System.out.println("TiwtchWrapper: getFollowerCount: caught exception");

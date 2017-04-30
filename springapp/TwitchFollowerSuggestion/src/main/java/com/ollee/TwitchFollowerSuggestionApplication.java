@@ -29,7 +29,7 @@ public class TwitchFollowerSuggestionApplication {
 		SpringApplication.run(TwitchFollowerSuggestionApplication.class, args);
 //		CassandraDriver.initializeCassandra();
 		
-		CassandraDriver2.initializeCassandra();
+		CassandraDriver3.initializeCassandra();
 		
 //		List<Follow> temp = TwitchWrapper.getUserChannelsFollowed("ollee64");
 //		Iterator<Follow> iter = temp.iterator();
