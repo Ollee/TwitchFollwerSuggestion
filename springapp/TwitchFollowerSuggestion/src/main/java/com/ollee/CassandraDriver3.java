@@ -93,19 +93,6 @@ public final class CassandraDriver3 {
 		System.out.println("CassandraDriver3: FETCHED CHANNELTABLEMAP: " + channelTableMap.size());
 		
 	}
-
-	//insert user follows
-//	public static void insertFollowList(String follower, List<Follow> channelsFollowed){
-//		System.out.println("CassandraDriver3: insertFollowLisT: " + follower);
-//		try {
-//			session.execute("INSERT INTO " + followerTable + " (username, channels, timestamp) VALUES ('" +
-//								follower + "',"+ 
-//								commaSeparateListFromFollowList(channelsFollowed) + ", '" + 
-//								Date.from(Instant.now()).getTime() +"');");
-//		} catch (Exception e) {
-//			System.out.println("CassandraDriver3: insertFollowList: INSERT INTO followers threw and error: " + e.getMessage());
-//		}
-//	}
 	
 	public static void insertFollowList(String follower, List<String> channelsFollowed, boolean bull){
 		System.out.println("CassandraDriver3: insertFollowLisT: " + follower);
@@ -129,35 +116,17 @@ public final class CassandraDriver3 {
 			System.out.println("CassandraDriver3: SELECT FROM followers threw an error: " + e.getStackTrace().toString());
 		}
 		
-//		if(result != null && result.size() > 0){
-//			System.out.println("getFollowList returned: " + result.get(0).toString());
-//		} else {
-//			System.out.println("getFollowList returned nothing john snuh");
-//		}
-
-//		Iterator<String> tokens = result.get(0).getSet("channels",  String.class).iterator();
-//		while(tokens.hasNext()){
-//			returnList.add(tokens.next());
-//		}
-		
 		return commaSeparatedStringToStringList(result.get(0).getString("channels"));
 	}
 	
 	private static List<String> commaSeparatedStringToStringList(String rawString){
 		List<String> workingList = new LinkedList<String>(Arrays.asList(rawString.split(",")));
-		 
-//		System.out.println("rawString: " + rawString);
-//		Iterator<String> iter = workingList.iterator();
-//		System.out.print("the split list: ");
-//		while(iter.hasNext()){
-//			System.out.print(iter.next() + " ");
-//		}
+
 		List<String> lowerCaseWorkingList = new LinkedList<String>();
 		Iterator<String> iter = workingList.iterator();
 		while(iter.hasNext()){
 			lowerCaseWorkingList.add(iter.next().toLowerCase());
 		}
-		
 		
 		return new LinkedList<String>(workingList);
 	}
@@ -175,7 +144,6 @@ public final class CassandraDriver3 {
 			}
 		}
 		
-//		System.out.println("workingString: " + workingString);
 		return workingString;
 	}
 
@@ -195,7 +163,6 @@ public final class CassandraDriver3 {
 			}
 		}
 		
-		
 		System.out.println("after a number of runs: " + numberofruns + " workingString is: " + workingString);
 		return workingString;
 	}
@@ -205,8 +172,7 @@ public final class CassandraDriver3 {
 		try {
 			String jsonBuilder = commaSeparateListFromFollowList(followerList);
 			System.out.println("JsonBUILDER: " + jsonBuilder);
-			
-//			insertIntoChannels(channelname, jsonBuilder);
+
 			session.execute("INSERT INTO " + channelTable + " (channelname, followers, timestamp) VALUES ('" +
 								channelname + "',"+ 
 								jsonBuilder + ", '" + 
@@ -216,20 +182,11 @@ public final class CassandraDriver3 {
 		}
 	}	
 
-//	public static void insertIntoChannels(String channelName, String followersList){
-//		
-//		Statement st = new SimpleStatement("INSERT INTO channels (channelname, followers) VALUES ('" + channelName + "','" + followersList + "');");
-//		session.execute(st);
-//	}
-	
 	public static void insertChannelFollowerList(String channelname, List<String> followersList, boolean whatever){
 		System.out.println("CassandraDriver3: Inserting Channel Followers by String List: " + channelname + " and followerList.size " + followersList.size());
 		try {
 			String jsonBuilder = commaSeparateListFromStringList(followersList);
-//			System.out.println("JsonBUILDER: " + jsonBuilder);
-			
-//			insertIntoChannels(channelname, jsonBuilder);
-			
+
 			session.execute("INSERT INTO " + channelTable + " (channelname, followers, timestamp) VALUES ('" +
 								channelname + "',"+ 
 								jsonBuilder + ", '" + 
@@ -238,18 +195,7 @@ public final class CassandraDriver3 {
 			System.out.println("CassandraDriver3: INSERT INTO followers threw and error: " + e.getMessage());
 		}
 	}
-	
-//	public static void insertChannelFollowerMap(Map<String, List<String>> map){
-//		System.out.println("CassandraDriver3: Inserting Channel Followers by Map");
-//		Iterator<String> iter = map.keySet().iterator();
-//		String key = "";
-//		while(iter.hasNext()){
-//			key = iter.next();
-//			System.out.println("Inserting channel follower map for: " + key + " with followers#: " + map.get(key).size());
-//			CassandraDriver3.insertChannelFollowerList(key, map.get(key), true);
-//		}
-//	}
-	
+
 	public static List<String> getChannelFollowerList(String channelname){
 		System.out.println("CassandraDriver3: getChannelFollowerList: " + channelname);
 		List<String> returnList = new LinkedList<String>();
@@ -261,13 +207,10 @@ public final class CassandraDriver3 {
 		}
 		
 		if(!result.isEmpty()){
-//			System.out.println("result tostring: " + result.get(0).toString());
 			String testString = result.get(0).getString("followers");
-//			System.out.println("testString: " + testString);
 			returnList = commaSeparatedStringToStringList(testString);
 		}
-		
-//		System.out.println("returnList Size: " + returnList.size());
+
 		return returnList;
 	}
 	
@@ -280,33 +223,15 @@ public final class CassandraDriver3 {
 		String key = "";
 		while(iter.hasNext()){
 			key = iter.next();
-
 			workingList = CassandraDriver3.getChannelFollowerList(key);
-//			System.out.println("Workinglist: " + workingList.size());
 			if(!workingList.isEmpty()){
 				returnMap.put(key, workingList);
 			}
-			
-			System.out.println("Debug Index: " + list.indexOf(key) + " run counter: " + counter++ + " Key: " + key + " returnMap: " + returnMap.size());
-			
+//			System.out.println("Debug Index: " + list.indexOf(key) + " run counter: " + counter++ + " Key: " + key + " returnMap: " + returnMap.size());
 		}
 		System.out.println("returnmap size: " + returnMap.size() + " returnmapkeysetsize: " + returnMap.keySet().size());
 		return returnMap;
 	}
-	
-//	public static boolean checkIfChannelFollowersAlreadyFetched(String channelName){
-//		List<Row> result = null;
-//		try{
-//			result = session.execute("SELECT channelname FROM " + channelTable + " WHERE channelname='" + channelName + "' ALLOW FILTERING;").all();
-//		} catch (Exception e){
-//			System.out.println("CassandraDriver3: SELECT FROM followers threw an error: " + e.getMessage());
-//		}
-//		
-//		if(!result.isEmpty() && result.get(0).getString("channelname").toLowerCase().equals(channelName.toLowerCase())){
-//			return true;
-//		}
-//		return false;
-//	}
 
 	public static boolean checkIfUserChannelsFollowedAlreadyFetched(String username){
 		List<Row> result = null;
@@ -369,27 +294,6 @@ public final class CassandraDriver3 {
 		
 		return map;
 	}
-
-//	public static List<String> fetchAllChannelsInDatabse() {
-//		List<Row> result = null;
-//		List<String> returnList = new LinkedList<String>();
-//		try {
-//			result = session.execute("SELECT channelname from " + channelTable + ";").all();
-//		} catch (Exception e) {
-//			
-//			e.printStackTrace();
-//			return null;
-//		}
-//		
-//		Iterator<Row> iter = result.iterator();
-//		Row workingRow = null;
-//		while(iter.hasNext()){
-//			workingRow = iter.next();
-//			returnList.add(workingRow.getString("channelname"));
-//		}
-//		
-//		return returnList;
-//	} 
 	
 	public static List<String> fetchAllFollowersInDatabase(){
 		List<Row> result = null;
@@ -412,19 +316,3 @@ public final class CassandraDriver3 {
 		return returnList;
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
