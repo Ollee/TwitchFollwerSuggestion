@@ -34,12 +34,9 @@ public final class TwitchWrapper {
 		Long followerCount = getFollowerCount(channel);
 		
 		System.out.println("TwitchWrapper: The channel: " + channelEndpoint.getChannel().getName() + " has followerCount: " + followerCount);
-		
-//		List<Follow> follows = populateListFollowWithChannel(
-//								channelEndpoint.getFollowers(Optional.ofNullable(followerCount), Optional.empty()),
-//								channelEndpoint.getChannel());
+	
 		List<Follow> follows = channelEndpoint.getFollowers(Optional.ofNullable(followerCount), Optional.empty());
-//		System.out.println("1234: " + follows.get(0).toString());
+
 		System.out.println("TwitchWrapper: The followers List of: " + channelEndpoint.getChannel().getName() + " has elements n = " + follows.size());
 
 		return follows;
@@ -69,13 +66,23 @@ public final class TwitchWrapper {
 	
 	//get list of all channels a user follows
 	public static List<Follow> getUserChannelsFollowed(String user){
-		UserEndpoint userEndpoint = twitchClient.getUserEndpoint();
-		Optional<User> userObject = userEndpoint.getUser(twitchClient.getUserEndpoint().getUserIdByUserName(user).get());
-		List<Follow> userFollows = userEndpoint.getUserFollows(	userObject.get().getId(), 
-																Optional.ofNullable(new Long(999999999)), 
-																Optional.ofNullable(new Long(0)), 
-																Optional.empty(), 
-																Optional.empty());
+		List<Follow> userFollows = new LinkedList<Follow>();
+		if(channelExists(user)){
+			UserEndpoint userEndpoint = twitchClient.getUserEndpoint();
+			Optional<User> userObject = userEndpoint.getUser(twitchClient.getUserEndpoint().getUserIdByUserName(user).get());
+			if(userObject.isPresent()){
+				try {
+					userFollows = userEndpoint.getUserFollows(	userObject.get().getId(), 
+																			Optional.ofNullable(new Long(999999999)), 
+																			Optional.ofNullable(new Long(0)), 
+																			Optional.empty(), 
+																			Optional.empty());
+				} catch (Exception e) {
+
+					e.printStackTrace();
+				}
+			} 
+		}
 //		System.out.println("TwitchWrapper: " + user + " follows: " + userFollows.size() + " channels");
 		return userFollows;
 	}
@@ -86,18 +93,7 @@ public final class TwitchWrapper {
 				.stream().map(Follow::getChannel).collect(Collectors.toList())
 					.stream().map(Channel::getName).collect(Collectors.toList());
 	}
-	
-	private static List<Follow> populateListFollowWithChannel(List<Follow> follows, Channel channel){
-		Iterator<Follow> iter = follows.iterator();
-		List<Follow> workingList = new LinkedList<Follow>();
-		Follow workingFollow = new Follow();
-		while(iter.hasNext()){
-			workingFollow = iter.next();
-			workingFollow.setChannel(channel);
-			workingList.add(workingFollow);
-		}
-		return workingList;
-	}
+
 	public static boolean channelExists(String username){
 		try {
 			twitchClient.getChannelEndpoint(username);

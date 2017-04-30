@@ -91,7 +91,7 @@ public final class TwitchAPICallHandler {
 		//now I need to fetch all the channels that users of level2Map have
 
 		//first check for duplicates
-		List<String> channelsInDB = CassandraDriver3.fetchAllFollowersInDatabase();
+		List<String> channelsInDB = CassandraDriver3.getListOfFollowersAlreadyInDatabase();
 		
 		System.out.println("TwitchAPICallHandler: Channels already in DB after run: " + channelsInDB.size());
 
@@ -112,12 +112,12 @@ public final class TwitchAPICallHandler {
 		String internalDumpString = "";
 		Iterator<String> internalLevel3Iter;
 		while(level3Iter.hasNext()){
-			System.out.println("TwitchAPICallHandler: pass of first loops over level2map keys");
+//			System.out.println("TwitchAPICallHandler: pass of first loops over level2map keys");
 			dumpString = level3Iter.next();
 			internalLevel3Iter = level2Map.get(dumpString).iterator();
 			innerCountdown = level2Map.get(dumpString).size();
 			while(internalLevel3Iter.hasNext()){
-				System.out.println("TwitchAPICallHandler: pass of second loop over the key list");
+//				System.out.println("TwitchAPICallHandler: pass of second loop over the key list");
 				internalDumpString = internalLevel3Iter.next();
 				if(internalDumpString != null){
 					level3Map.put(internalDumpString, fetchChannelsUserFollows(internalDumpString));
@@ -210,27 +210,22 @@ public final class TwitchAPICallHandler {
 	}
 
 	private static List<String> fetchChannelsUserFollows(String username) {
-		List<String> userFollows = null;
-		boolean exception = false;
-		if(!CassandraDriver3.checkIfUserChannelsFollowedAlreadyFetched(username)){
-			try {
+		List<String> userFollows = new LinkedList<String>();
+		if(!CassandraDriver3.followerMapContains(username)){
+			try { //if not in the database, fetch from twitch
 				userFollows = TwitchWrapper.getUserChannelsFollowsAsString(username);
 			} catch (Exception e) {
-				exception = true;
 				e.printStackTrace();
 				System.out.println("TwitchAPICallHandler: EXCEPTION");
 			}
 			System.out.println("TwitchAPICallHandler: Called TwitchAPI: " + username);
-			CassandraDriver3.insertFollowList(username, userFollows, true);
-		} else{
+			CassandraDriver3.insertFollowList(username, userFollows); //insert in to cassandra
+		} else{// else get from databse
 			userFollows = CassandraDriver3.getFollowList(username);
 		}
-		if(exception){
-			userFollows = new LinkedList<String>();
-		}else {
-			//remove channels with more than 10,000 followers
-			userFollows.removeAll(TwitchAPICallHandler.getChannelFollowersOverLong(channelFollowerCounts, followerCountCutoff));
-		}
+		//remove channels with more than 10,000 followers
+		//TODO move this functionality into the driver
+		userFollows.removeAll(TwitchAPICallHandler.getChannelFollowersOverLong(channelFollowerCounts, followerCountCutoff));
 		return userFollows;
 	}
 
@@ -271,7 +266,7 @@ public final class TwitchAPICallHandler {
 				if(workingList != null){
 					if(workingList.size() > 0){
 						map.put(key, workingList);
-						CassandraDriver3.insertChannelFollowerList(key, workingList, true);
+						CassandraDriver3.insertChannelFollowerList(key, workingList);
 					}
 				}
 			} else{
