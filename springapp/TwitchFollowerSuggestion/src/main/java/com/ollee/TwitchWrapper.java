@@ -78,7 +78,7 @@ public final class TwitchWrapper {
 																			Optional.empty(), 
 																			Optional.empty());
 				} catch (Exception e) {
-
+					System.out.println("TwitchWrapper: getUserchannelsFollowed Exception Caught");
 					e.printStackTrace();
 				}
 			} 
