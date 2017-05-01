@@ -3,11 +3,11 @@ package com.ollee;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
@@ -29,8 +29,8 @@ public final class CassandraDriver3 {
 	private static String followerTable = "followertable";
 	private static String channelTable = "channeltable";
 	private static String followerCacheTable = "followertablecache";
-	private static Map<String, List<String>> followerTableMap = new HashMap<String,List<String>>();
-	private static Map<String, List<String>> channelTableMap = new HashMap<String, List<String>>();
+	private static Map<String, List<String>> followerTableMap = new ConcurrentHashMap<String,List<String>>();
+	private static Map<String, List<String>> channelTableMap = new ConcurrentHashMap<String, List<String>>();
 	
 	public static void initializeCassandra(){
 		System.out.println("CassandraDriver: Building Cluster");
@@ -64,7 +64,9 @@ public final class CassandraDriver3 {
 		System.out.println("CassandraDriver3: INITIALIZING TABLES FROM DATABASE");
 		fetchAllFollowersFromDB();
 		fetchAllChannelsFromDB();
-		
+		System.out.println("DATABASE LAODED");
+		System.out.println("DATABASE LAODED");
+		System.out.println("DATABASE LAODED");
 	}
 
 	private static void fetchAllFollowersFromDB() {
@@ -112,15 +114,16 @@ public final class CassandraDriver3 {
 	public static void insertFollowList(String follower, List<String> channelsFollowed){
 		System.out.println("CassandraDriver3: insertFollowLisT: " + follower);
 		
-		followerTableMap.put(follower, channelsFollowed);
-		
-		try {
-			session.execute("INSERT INTO " + followerTable + " (username, channels, timestamp) VALUES ('" +
-								follower + "',"+ 
-								commaSeparateListFromStringList(channelsFollowed) + ", '" + 
-								Date.from(Instant.now()).getTime() +"');");
-		} catch (Exception e) {
-			System.out.println("CassandraDriver3: insertFollowList: INSERT INTO followers threw and error: " + e.getMessage());
+		if (!followerMapContains(follower)) {
+			followerTableMap.put(follower, channelsFollowed);
+			try {
+				session.execute("INSERT INTO " + followerTable + " (username, channels, timestamp) VALUES ('" + follower
+						+ "'," + commaSeparateListFromStringList(channelsFollowed) + ", '"
+						+ Date.from(Instant.now()).getTime() + "');");
+			} catch (Exception e) {
+				System.out.println(
+						"CassandraDriver3: insertFollowList: INSERT INTO followers threw and error: " + e.getMessage());
+			} 
 		}
 	}
 	
@@ -248,7 +251,7 @@ public final class CassandraDriver3 {
 	//technically has coverage cause it uses getChannelFollowerList
 	public static Map<String, List<String>> getChannelFollowerMap(List<String> list){
 		System.out.println("CassandraDriver3: getChannelFollowerMap: " + list.size());
-		Map<String, List<String>> returnMap = new HashMap<String, List<String>>();
+		Map<String, List<String>> returnMap = new ConcurrentHashMap<String, List<String>>();
 		Iterator<String> iter = list.iterator();
 		List<String> workingList = null;
 //		int counter = 0;
@@ -304,7 +307,7 @@ public final class CassandraDriver3 {
 	
 	public static Map<String, Long> getChannelFollowerCounts() {
 		List<Row> result = null;
-		Map<String, Long> map = new HashMap<String,Long>();
+		Map<String, Long> map = new ConcurrentHashMap<String,Long>();
 		try{
 			result = session.execute("SELECT * FROM followercount;").all();
 		} catch (Exception e){

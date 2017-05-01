@@ -6,16 +6,16 @@
 </head>
 <body>
 
-	<h1>Result: <div th:text="${message}"></div></h1>
+	<h1><div th:text="${message}">Channel Suggestions:</div></h1>
 	<table>
 		<tr>
 			<td>
 				<table>
-				    <tr th:each="suggest : ${suggestions}">
-				    	<td th:text="${suggest.user.name}"></td>
-				    	<td th:text="${suggest.channel.name}"></td>
-				    
-				    </tr>
+					
+					    <tr th:each="sugg : ${suggestions}">
+					    	<td><a th:text="${sugg.name}" th:href="@{|https://www.twitch.tv/${sugg.name}|}">fail</a></td>
+					    </tr>
+					    
 			    </table>
 		    </td>
 	    </tr>

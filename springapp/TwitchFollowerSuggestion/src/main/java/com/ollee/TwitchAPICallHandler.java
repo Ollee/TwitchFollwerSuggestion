@@ -1,34 +1,27 @@
 package com.ollee;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
-import com.ollee.deprecated.TwitchAPIRateLimiter;
-
-import me.philippheuer.twitch4j.model.Channel;
 import me.philippheuer.twitch4j.model.Follow;
 
 public final class TwitchAPICallHandler {
 	
-	private static List<Follow> userFollowsToInsertIntoDatabase = new LinkedList<Follow>();
-	private static List<Follow> channelFollowers = new LinkedList<Follow>();
-	private static TwitchAPIRateLimiter runMe = new TwitchAPIRateLimiter();
 	private static List<String> channelsAlreadyInChannelsDatabase = new LinkedList<String>();
-	private static Map<String, Long> channelFollowerCounts = new HashMap<String, Long>();
+	private static Map<String, Long> channelFollowerCounts = new ConcurrentHashMap<String, Long>();
 	private static Long followerCountCutoff = new Long(3000);
 
 	public TwitchAPICallHandler(){
 	}
 	
-	public static List<String> fetchChannelSuggestions(String username){
+	public List<String> fetchChannelSuggestions(String username){
 		
 		// userFollows contains a list of all channels a user follows
 		//level2Map contains a clean map of all followers of the channels a user follows and their followers
@@ -48,7 +41,7 @@ public final class TwitchAPICallHandler {
 		//remove followers already in cassandra from a copy of user follows
 		List<String> listOfChannelsNotAlreadyInChannelsTable = removeChannelsAlreadyInDatabase(new LinkedList<String>(userFollows));
 		System.out.println("TwitchAPICallHandler: after Remove channels: " + listOfChannelsNotAlreadyInChannelsTable.size());
-		Map<String, List<String>> level2Map = new HashMap<String,List<String>>(); 
+		Map<String, List<String>> level2Map = new ConcurrentHashMap<String,List<String>>(); 
 		//if there are any channels in userFollows, fetch them from twitch and insert to cassandra
 		if(!listOfChannelsNotAlreadyInChannelsTable.isEmpty()){//as long as there is 1 channel not in the table
 			//this initiates twithc api calls for things not already fetched
@@ -109,7 +102,7 @@ public final class TwitchAPICallHandler {
 		int innerCountdown = 0;
 		
 		System.out.println("TwitchAPICallHandler: level3ChannelsToFetch: " + level3ChannelsToFetch.size());
-		Map<String, List<String>> level3Map = new HashMap<String,List<String>>();
+		Map<String, List<String>> level3Map = new ConcurrentHashMap<String,List<String>>();
 		Iterator<String> level3Iter = level3ChannelsToFetch.iterator();
 		outerCountdown = level3ChannelsToFetch.size();
 		String dumpString = "";
@@ -139,7 +132,7 @@ public final class TwitchAPICallHandler {
 			//this is the weighting of channel suggestions
 			//create a <string,int> that is followers with mutual channels followed // note my follows are in userFollows
 		
-		Map<String, Integer> commonCount = new HashMap<String, Integer>();
+		Map<String, Integer> commonCount = new ConcurrentHashMap<String, Integer>();
 		
 		level3Iter = level3Map.keySet().iterator();
 		List<String> destroyableListOfChannels;
@@ -175,7 +168,7 @@ public final class TwitchAPICallHandler {
 		List<Entry<String, Integer>> holdingSorted = entriesSortedByValues(commonCount);
 		Iterator<Entry<String, Integer>> listEntryIter = holdingSorted.iterator();
 		
-		Map<String,Integer> sortedCommonCount = new HashMap<String,Integer>();
+		Map<String,Integer> sortedCommonCount = new ConcurrentHashMap<String,Integer>();
 
 		Entry<String,Integer> working;
 		while(listEntryIter.hasNext()){
@@ -325,7 +318,7 @@ public final class TwitchAPICallHandler {
 	//returns list of channels from twitch API that have followers > 0
 	private static Map<String, List<String>> fetchFollowersOfListOfStringChannels(List<String> listOfChannelsNotAlreadyInChannelsTable) {
 		System.out.println("TwitchAPICallHandler: fetchFollowersOfListOfStringChannels " + listOfChannelsNotAlreadyInChannelsTable.size());
-		Map<String, List<String>> map = new HashMap<String,List<String>>();
+		Map<String, List<String>> map = new ConcurrentHashMap<String,List<String>>();
 		List<String> workingList = null;
 		int runNumber = 1;
 		Iterator<String> iter = listOfChannelsNotAlreadyInChannelsTable.iterator();

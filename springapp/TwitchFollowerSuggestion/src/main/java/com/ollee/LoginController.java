@@ -39,7 +39,8 @@ public class LoginController {
 			mv = new ModelAndView("usernameResult");
 			Long initial = Instant.now().getEpochSecond();
 			//CassandraDriver.threadedInsertFollowList(new LinkedList<Follow>(userFollows));
-			List<String> userFollows = TwitchAPICallHandler.fetchChannelSuggestions(username.getName());
+			TwitchAPICallHandler callHandler = new TwitchAPICallHandler();
+			List<String> userFollows = callHandler.fetchChannelSuggestions(username.getName());
 			Long post = Instant.now().getEpochSecond();
 			
 			System.out.println("This took this long in Seconds: " + (post - initial));
@@ -62,7 +63,7 @@ public class LoginController {
 			
 			
 			mv.addObject("username", username);
-			mv.addObject("userfollows", suggestions);
+			mv.addObject("suggestions", suggestions);
 			System.out.println("LoginController: hit LoginController.greetingSubmit for user: " + username.getName());
 		} else {
 			mv = new ModelAndView("redirect:/");
