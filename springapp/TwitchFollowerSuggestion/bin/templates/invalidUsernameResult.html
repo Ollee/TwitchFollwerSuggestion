@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<title>Twitch Follower Suggestion</title>
+</head>
+<body>
+    <h2>Invalid Username: Please Input Valid Username</h2>
+    <form action="#" th:action="@{/}" th:object="${username}" method="post">
+    	<p>Username: <input type="text" th:field="*{name}" /></p>
+    	<p> <input type="submit" value="Submit" /><input type="reset" value="reset" /> </p>
+    </form>
+</body>
+</html>

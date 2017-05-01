@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title th:text='${username.name}'>Insert title here</title>
+</head>
+<body>
+
+	<h1><div th:text="${message}">Channel Suggestions:</div></h1>
+	<table>
+		<tr>
+			<td>
+				<table>
+					
+					    <tr th:each="sugg : ${suggestions}">
+					    	<td><a th:text="${sugg.name}" th:href="@{|https://www.twitch.tv/${sugg.name}|}">fail</a></td>
+					    </tr>
+					    
+			    </table>
+		    </td>
+	    </tr>
+    </table>
+    <a href="/">Do Another User</a>
+</body>
+</html>

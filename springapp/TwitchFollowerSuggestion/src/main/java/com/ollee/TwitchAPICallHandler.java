@@ -254,8 +254,9 @@ public final class TwitchAPICallHandler {
 //			counter1--;
 //			counter2--;
 //		}
-		
-		level3ChannelsToFetch.removeAll(channelsInDB);
+		if(!channelsInDB.isEmpty() && channelsInDB != null){
+			level3ChannelsToFetch.removeAll(channelsInDB);
+		}
 		
 		System.out.println("\nAFTER REMOVAL: " + level3ChannelsToFetch.size() + " and it ran: " + " times\n\n");
 		
