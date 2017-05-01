@@ -1,11 +1,15 @@
 package com.ollee;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import com.ollee.deprecated.TwitchAPIRateLimiter;
 
@@ -24,7 +28,7 @@ public final class TwitchAPICallHandler {
 	public TwitchAPICallHandler(){
 	}
 	
-	public static List<Channel> fetchChannelSuggestions(String username){
+	public static List<String> fetchChannelSuggestions(String username){
 		
 		// userFollows contains a list of all channels a user follows
 		//level2Map contains a clean map of all followers of the channels a user follows and their followers
@@ -133,8 +137,79 @@ public final class TwitchAPICallHandler {
 		
 		//calculate weight of channel suggestion by mutually followed channels Map<follower,channelname> then count occurances of channelname
 			//this is the weighting of channel suggestions
+			//create a <string,int> that is followers with mutual channels followed // note my follows are in userFollows
 		
-		return null;
+		Map<String, Integer> commonCount = new HashMap<String, Integer>();
+		
+		level3Iter = level3Map.keySet().iterator();
+		List<String> destroyableListOfChannels;
+		String level3Key;
+		Iterator<String> internalIter;
+		String internalDump;
+		while(level3Iter.hasNext()){
+			level3Key = level3Iter.next();
+			destroyableListOfChannels = new LinkedList<String>(level3Map.get(level3Key));
+			
+			internalIter = destroyableListOfChannels.iterator();
+			while(internalIter.hasNext()){
+				internalDump = internalIter.next();
+				if(!commonCount.containsKey(internalDump)){
+					commonCount.put(internalDump, 1);
+				} else{
+					int dummy = commonCount.get(internalDump)+1;
+					commonCount.put(internalDump, dummy);
+				}
+			}
+		}//commonc ocunt now has a list of channels and how many people who follow your channels follow them
+		
+		destroyableListOfChannels = new LinkedList<String>(commonCount.keySet());
+		destroyableListOfChannels.retainAll(userFollows);
+		
+		level3Iter = destroyableListOfChannels.iterator();
+		while(level3Iter.hasNext()){
+			commonCount.remove(level3Iter.next());
+		}
+		
+		//now have commonCount as a list of channels and ints of mutually followed channels
+		//sort that map
+		List<Entry<String, Integer>> holdingSorted = entriesSortedByValues(commonCount);
+		Iterator<Entry<String, Integer>> listEntryIter = holdingSorted.iterator();
+		
+		Map<String,Integer> sortedCommonCount = new HashMap<String,Integer>();
+
+		Entry<String,Integer> working;
+		while(listEntryIter.hasNext()){
+			working = listEntryIter.next();
+			sortedCommonCount.put(working.getKey(), working.getValue());
+		}
+
+		List<String> top100Suggestions = new LinkedList<String>();
+		
+		level3Iter = sortedCommonCount.keySet().iterator();
+		int finalCounter = 0;
+		while(level3Iter.hasNext() && finalCounter <=100){
+			top100Suggestions.add(level3Iter.next());
+		}
+		
+		
+		return top100Suggestions;
+	}
+	
+	// got this from http://stackoverflow.com/questions/11647889/sorting-the-mapkey-value-in-descending-order-based-on-the-value
+	private static <K,V extends Comparable<? super V>> List<Entry<K, V>> entriesSortedByValues(Map<K,V> map) {
+
+		List<Entry<K,V>> sortedEntries = new ArrayList<Entry<K,V>>(map.entrySet());
+
+		Collections.sort(sortedEntries, 
+		    new Comparator<Entry<K,V>>() {
+		        @Override
+		        public int compare(Entry<K,V> e1, Entry<K,V> e2) {
+		            return e2.getValue().compareTo(e1.getValue());
+		        }
+		    }
+		);
+
+		return sortedEntries;
 	}
 
 	private static List<String> removeChannelsAlreadyInDatabase(List<String> level3ChannelsToFetch, List<String> channelsInDB) {

@@ -11,9 +11,10 @@
 		<tr>
 			<td>
 				<table>
-				    <tr th:each="follow : ${userfollows}">
-				    	<td th:text="${follow.user.name}"></td>
-				    	<td th:text="${follow.channel.name}"></td>
+				    <tr th:each="suggest : ${suggestions}">
+				    	<td th:text="${suggest.user.name}"></td>
+				    	<td th:text="${suggest.channel.name}"></td>
+				    
 				    </tr>
 			    </table>
 		    </td>

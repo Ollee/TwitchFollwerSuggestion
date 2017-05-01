@@ -2,6 +2,7 @@ package com.ollee;
 
 import java.sql.Date;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -38,13 +39,30 @@ public class LoginController {
 			mv = new ModelAndView("usernameResult");
 			Long initial = Instant.now().getEpochSecond();
 			//CassandraDriver.threadedInsertFollowList(new LinkedList<Follow>(userFollows));
-			List<Channel> userFollows = TwitchAPICallHandler.fetchChannelSuggestions(username.getName());
+			List<String> userFollows = TwitchAPICallHandler.fetchChannelSuggestions(username.getName());
 			Long post = Instant.now().getEpochSecond();
 			
-			System.out.println("This tooke this long in Seconds: " + (post - initial));
+			System.out.println("This took this long in Seconds: " + (post - initial));
+			
+			List<Channel> suggestions = new LinkedList<Channel>();
+			
+			
+			
+			Iterator<String> iter = userFollows.iterator();
+			int i = 0;
+			while(iter.hasNext() && i < 20){
+				i++;
+				suggestions.add(TwitchWrapper.getChannelObject(iter.next()));
+				System.out.println("Final Run #: " + i);
+			}
+			
+			for (int j = 0; j < suggestions.size(); j++){
+				System.out.println("dumping channel Suggestions: " + suggestions.get(j).getName().toLowerCase());
+			}
+			
 			
 			mv.addObject("username", username);
-			mv.addObject("userfollows", userFollows);
+			mv.addObject("userfollows", suggestions);
 			System.out.println("LoginController: hit LoginController.greetingSubmit for user: " + username.getName());
 		} else {
 			mv = new ModelAndView("redirect:/");
