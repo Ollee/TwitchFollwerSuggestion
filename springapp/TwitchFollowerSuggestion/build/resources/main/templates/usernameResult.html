@@ -13,7 +13,8 @@
 				<table>
 					
 					    <tr th:each="sugg : ${suggestions}">
-					    	<td><a th:text="${sugg.name}" th:href="@{|https://www.twitch.tv/${sugg.name}|}">fail</a></td>
+					    	<td><a th:text="${sugg.key.name}" th:href="@{|https://www.twitch.tv/${sugg.key.name}|}">fail</a></td>
+					    	<td th:text="${sugg.value}">fail2</td>
 					    </tr>
 					    
 			    </table>

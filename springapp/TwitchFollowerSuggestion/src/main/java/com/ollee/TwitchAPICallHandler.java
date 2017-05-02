@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +20,7 @@ public final class TwitchAPICallHandler {
 	public TwitchAPICallHandler(){
 	}
 	
-	public List<String> fetchChannelSuggestions(String username){
+	public LinkedHashMap<String, Integer> fetchChannelSuggestions(String username){
 		
 		// userFollows contains a list of all channels a user follows
 		//level2Map contains a clean map of all followers of the channels a user follows and their followers
@@ -151,7 +152,7 @@ public final class TwitchAPICallHandler {
 					commonCount.put(internalDump, dummy);
 				}
 			}
-		}//commonc ocunt now has a list of channels and how many people who follow your channels follow them
+		}//common count now has a list of channels and how many people who follow your channels follow them
 		
 		destroyableListOfChannels = new LinkedList<String>(commonCount.keySet());
 		destroyableListOfChannels.retainAll(userFollows);
@@ -164,26 +165,18 @@ public final class TwitchAPICallHandler {
 		//now have commonCount as a list of channels and ints of mutually followed channels
 		//sort that map
 		List<Entry<String, Integer>> holdingSorted = entriesSortedByValues(commonCount);
-		Iterator<Entry<String, Integer>> listEntryIter = holdingSorted.iterator();
-		
-		Map<String,Integer> sortedCommonCount = new ConcurrentHashMap<String,Integer>();
-
-		Entry<String,Integer> working;
-		while(listEntryIter.hasNext()){
-			working = listEntryIter.next();
-			sortedCommonCount.put(working.getKey(), working.getValue());
-		}
-
-		List<String> top100Suggestions = new LinkedList<String>();
-		
-		level3Iter = sortedCommonCount.keySet().iterator();
+		Iterator<Entry<String, Integer>> sortedIterator = holdingSorted.iterator();
+		Entry<String,Integer> sortedEntry;
+		LinkedHashMap<String,Integer> sortedCommonCount = new LinkedHashMap<String,Integer>();
 		int finalCounter = 0;
-		while(level3Iter.hasNext() && finalCounter <=100){
-			top100Suggestions.add(level3Iter.next());
+		while(sortedIterator.hasNext() && finalCounter < 100){
+			sortedEntry = sortedIterator.next();
+			System.out.println("DEBUG: " + sortedEntry.getKey() + " " + sortedEntry.getValue());
+			sortedCommonCount.put(sortedEntry.getKey(), sortedEntry.getValue());
+			finalCounter++;
 		}
-		
-		
-		return top100Suggestions;
+
+		return sortedCommonCount;
 	}
 	
 	// got this from http://stackoverflow.com/questions/11647889/sorting-the-mapkey-value-in-descending-order-based-on-the-value

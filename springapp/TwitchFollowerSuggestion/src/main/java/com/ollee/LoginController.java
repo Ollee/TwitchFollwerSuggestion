@@ -2,8 +2,7 @@ package com.ollee;
 
 import java.time.Instant;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.LinkedHashMap;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -37,30 +36,26 @@ public class LoginController {
 			Long initial = Instant.now().getEpochSecond();
 			//CassandraDriver.threadedInsertFollowList(new LinkedList<Follow>(userFollows));
 			TwitchAPICallHandler callHandler = new TwitchAPICallHandler();
-			List<String> userFollows = callHandler.fetchChannelSuggestions(username.getName());
+			LinkedHashMap<String, Integer> channelSuggestions = callHandler.fetchChannelSuggestions(username.getName());
 			Long post = Instant.now().getEpochSecond();
 			
 			System.out.println("This took this long in Seconds: " + (post - initial));
+
+
+			LinkedHashMap<Channel,Integer> finalSuggestions = new LinkedHashMap<Channel, Integer>();
 			
-			List<Channel> suggestions = new LinkedList<Channel>();
-			
-			
-			
-			Iterator<String> iter = userFollows.iterator();
+			Iterator<String> iter = channelSuggestions.keySet().iterator();
 			int i = 0;
+			String key;
 			while(iter.hasNext() && i < 20){
 				i++;
-				suggestions.add(TwitchWrapper.getChannelObject(iter.next()));
-				System.out.println("Final Run #: " + i);
+				key = iter.next();
+				finalSuggestions.put(TwitchWrapper.getChannelObject(key), channelSuggestions.get(key));
+				System.out.println("Final Run #: " + i + " and key: " + key + " and weight : " + channelSuggestions.get(key));
 			}
-			
-			for (int j = 0; j < suggestions.size(); j++){
-				System.out.println("dumping channel Suggestions: " + suggestions.get(j).getName().toLowerCase());
-			}
-			
-			
+
 			mv.addObject("username", username);
-			mv.addObject("suggestions", suggestions);
+			mv.addObject("suggestions", finalSuggestions);
 			System.out.println("LoginController: hit LoginController.greetingSubmit for user: " + username.getName());
 		} else {
 			mv = new ModelAndView("redirect:/");
