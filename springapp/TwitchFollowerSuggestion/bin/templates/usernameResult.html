@@ -5,22 +5,20 @@
 <title th:text='${username.name}'>Insert title here</title>
 </head>
 <body>
-
-	<h1><div th:text="${message}">Channel Suggestions:</div></h1>
-	<table>
+<table>
 		<tr>
-			<td>
-				<table>
-					
-					    <tr th:each="sugg : ${suggestions}">
-					    	<td><a th:text="${sugg.key.name}" th:href="@{|https://www.twitch.tv/${sugg.key.name}|}">fail</a></td>
-					    	<td th:text="${sugg.value}">fail2</td>
-					    </tr>
-					    
-			    </table>
-		    </td>
+			<h1><div>Channel Suggestions:</div></h1>
+		</tr>
+	    <tr th:each="sugg : ${suggestions}">
+	    	<td>
+		    	<div>
+		    		<!-- <div><img style="width:300px;" th:source="${sugg.key.videobanner}"/></div> -->
+		    		<div><a th:text="${sugg.key.name}" th:href="@{|https://www.twitch.tv/${sugg.key.name}|}">fail</a></div>
+		    		<div th:text="${sugg.value}"></div>
+		    	</div>
+	    	</td>
 	    </tr>
-    </table>
+   </table>
     <a href="/">Do Another User</a>
 </body>
 </html>
