@@ -13,12 +13,9 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.SocketOptions;
-import com.datastax.driver.core.Statement;
 
 import lombok.Getter;
-import me.philippheuer.twitch4j.model.Follow;
 
 public final class CassandraDriver3 {
 	private static Cluster cluster;
@@ -28,7 +25,6 @@ public final class CassandraDriver3 {
 	private static String keyspaceName = "twitchsuggestion";
 	private static String followerTable = "followertable";
 	private static String channelTable = "channeltable";
-	private static String followerCacheTable = "followertablecache";
 	private static Map<String, List<String>> followerTableMap = new ConcurrentHashMap<String,List<String>>();
 	private static Map<String, List<String>> channelTableMap = new ConcurrentHashMap<String, List<String>>();
 	
@@ -156,30 +152,14 @@ public final class CassandraDriver3 {
 		
 		return new LinkedList<String>(workingList);
 	}
-	
-	private static String commaSeparateListFromFollowList(List<Follow> channelsFollowed) {
-		String workingString = "'";
-//		System.out.println("commaSeparateListFromFollowList: channelsfollows.size: " + channelsFollowed.size());
-		Iterator<Follow> iter = channelsFollowed.iterator();
-		while(iter.hasNext()){
-			workingString+=iter.next().getChannel().getName().toLowerCase();
-			if(iter.hasNext()){
-				workingString+=",";
-			} else{
-				workingString+="'";
-			}
-		}
-		
-		return workingString;
-	}
 
 	public static String commaSeparateListFromStringList(List<String> channelsFollowed) {
 		String workingString = "'";
 //		System.out.println("CassandraDriver3: commaSeparateListFromStringList: channelsfollows.size: " + channelsFollowed.size());
 		Iterator<String> iter = channelsFollowed.iterator();
-		int numberofruns = 0;
+//		int numberofruns = 0;
 		while(iter.hasNext()){
-			numberofruns++;
+//			numberofruns++;
 			String next = iter.next();
 			workingString+=next.toLowerCase();
 			if(iter.hasNext()){
@@ -191,22 +171,7 @@ public final class CassandraDriver3 {
 		
 //		System.out.println("after a number of runs: " + numberofruns + " workingString is: " + workingString);
 		return workingString;
-	}
-
-//	public static void insertChannelFollowerList(String channelname, List<Follow> followerList){
-//		System.out.println("CassandraDriver3: Inserting Channel Followers by Follow List: " + channelname);
-//		try {
-//			String jsonBuilder = commaSeparateListFromFollowList(followerList);
-//			System.out.println("JsonBUILDER: " + jsonBuilder);
-//
-//			session.execute("INSERT INTO " + channelTable + " (channelname, followers, timestamp) VALUES ('" +
-//								channelname + "',"+ 
-//								jsonBuilder + ", '" + 
-//								Date.from(Instant.now()).getTime() +"');");
-//		} catch (Exception e) {
-//			System.out.println("CassandraDriver3: INSERT INTO followers threw and error: " + e.getMessage());
-//		}
-//	}	
+	}	
 	
 	public static void insertChannelFollowerList(String channelname, List<String> followersList){
 		System.out.println("CassandraDriver3: Inserting Channel Followers by String List: " + channelname + " and followerList.size " + followersList.size());
@@ -274,20 +239,6 @@ public final class CassandraDriver3 {
 	
 	//majority of this functionality was probably removed from adding local cacheing...no just return list of the keys
 	public static List<String> getListOfChannelsAlreadyInDatabase() {
-//		List<Row> result = null;
-//		List<String> channelList = new LinkedList<String>();
-//		try{
-//			result = session.execute("SELECT channelname FROM " + channelTable + ";").all();
-//		} catch (Exception e){
-//			System.out.println("CassandraDriver3: SELECT FROM followers threw an error: " + e.getMessage());
-//			return null;
-//		}
-//		
-//		Iterator<Row> iter = result.iterator();
-//		while(iter.hasNext()){
-//			channelList.add(iter.next().getString("channelname"));
-//		}
-		
 		return new LinkedList<String>(channelTableMap.keySet());
 	}
 	
@@ -324,25 +275,4 @@ public final class CassandraDriver3 {
 		
 		return map;
 	}
-
-//	public static List<String> fetchAllFollowersInDatabase(){
-//		List<Row> result = null;
-//		List<String> returnList = new LinkedList<String>();
-//		try {
-//			result = session.execute("SELECT username from " + followerTable + ";").all();
-//		} catch (Exception e) {
-//			
-//			e.printStackTrace();
-//			return null;
-//		}
-//		
-//		Iterator<Row> iter = result.iterator();
-//		Row workingRow = null;
-//		while(iter.hasNext()){
-//			workingRow = iter.next();
-//			returnList.add(workingRow.getString("username"));
-//		}
-//		
-//		return returnList;
-//	}
 }

@@ -1,6 +1,5 @@
 package com.ollee;
 
-import java.sql.Date;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 
 import me.philippheuer.twitch4j.model.Channel;
-import me.philippheuer.twitch4j.model.Follow;
 
 @Controller
 @RequestMapping(value={"/","/error"})
@@ -30,7 +28,6 @@ public class LoginController {
 	
 	@PostMapping("/")
 	public ModelAndView greetingSubmit(@ModelAttribute UserName username){
-		// TODO check if valid username, if not return to /index, else run gather info code
 		
 		//gather info and return to usernameResult
 		ModelAndView mv = null;

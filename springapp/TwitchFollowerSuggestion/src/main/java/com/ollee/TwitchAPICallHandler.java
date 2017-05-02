@@ -10,8 +10,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
-import me.philippheuer.twitch4j.model.Follow;
-
 public final class TwitchAPICallHandler {
 	
 	private static List<String> channelsAlreadyInChannelsDatabase = new LinkedList<String>();
@@ -209,51 +207,7 @@ public final class TwitchAPICallHandler {
 
 		System.out.println("CHANNELSINDB: " + channelsInDB.size());
 		System.out.println("BEFORE REMOVAL: " + level3ChannelsToFetch.size());
-//		int existscounter = 0;
-//		String dump;
-//		int channelsRemoved = 0;
-//		Iterator<String> iter = channelsInDB.iterator();
-//		while(iter.hasNext()){
-//			dump = iter.next();//get item from channelsindb
-//			int index = -1;//reset index
-//			Iterator<String> iter2 = level3ChannelsToFetch.iterator();//create fresh level3 iterator
-//			int innerIndex = 0;//reset inner index
-//			while(iter2.hasNext() && index == -1){//while things left in leve3 
-//				String dump2 = iter2.next();//get next item in level3 iterator
-//				if(dump2.equals(dump)){//if the item from level3 == channelsindb
-//					index = innerIndex;//set index and break
-//					channelsRemoved++;
-//				}
-//				innerIndex++;//increment inner if we didn't break
-//			}
-//			if(index >= 0){//if we broke
-//				level3ChannelsToFetch.remove(index);//remove at the break
-//			}
-//			existscounter++;
-//		}
-//		List<String> retainList = new LinkedList<String>(level3ChannelsToFetch);
-//		retainList.retainAll(channelsInDB);
-//		System.out.println("RETAIN LIST SIZE: " + retainList.size());
-//		
-//		System.out.println("DUMPING LISTS");
-//		
-//		int counter1 = level3ChannelsToFetch.size()-1;
-//		int counter2 = channelsInDB.size()-1;
-//		
-//		while(counter1 >= 0 || counter2 >= 0){
-//			if(counter1 >=0){
-//				System.out.print(level3ChannelsToFetch.get(counter1));
-//			} else{
-//				System.out.print("empty");
-//			}
-//			if(counter2 >=0){
-//				System.out.print("," + channelsInDB.get(counter2) + "\n");
-//			} else{
-//				System.out.print(",empty\n");
-//			}
-//			counter1--;
-//			counter2--;
-//		}
+
 		if(!channelsInDB.isEmpty() && channelsInDB != null){
 			level3ChannelsToFetch.removeAll(channelsInDB);
 		}
@@ -261,21 +215,6 @@ public final class TwitchAPICallHandler {
 		System.out.println("\nAFTER REMOVAL: " + level3ChannelsToFetch.size() + " and it ran: " + " times\n\n");
 		
 		return level3ChannelsToFetch;
-	}
-
-	private static Map<String, List<String>> cleanMapOfDuplicateChannels(Map<String, List<String>> map,
-																		List<String> list) {
-		System.out.println("TwitchAPICallHandler: cleanMapOfDuplicateChannels: map.size: " + map + " list.size: " + list.size());
-		String workingString = "";
-		Iterator<String> iter = list.iterator();
-		while(iter.hasNext()){
-			workingString = iter.next();
-			if(map.containsKey(workingString)){
-				map.remove(workingString);
-			}
-		}
-		
-		return map;
 	}
 
 	private static List<String> fetchChannelsUserFollows(String username) {
@@ -292,7 +231,7 @@ public final class TwitchAPICallHandler {
 		} else{// else get from databse
 			userFollows = CassandraDriver3.getFollowList(username);
 		}
-		//remove channels with more than 10,000 followers
+		//remove channels with more than 3,000 followers
 		//TODO move this functionality into the driver
 		userFollows.removeAll(TwitchAPICallHandler.getChannelFollowersOverLong(channelFollowerCounts, followerCountCutoff));
 		return userFollows;
@@ -347,50 +286,13 @@ public final class TwitchAPICallHandler {
 		return map;
 	}
 
-	private static List<String> extractChannelNamesAsStringList(List<Follow> followList) {
-		System.out.println("TwitchAPICallHandler: extractChannelNameAsString " + followList.size());
-		Iterator<Follow> iter = followList.iterator();
-		List<String> stringList = new LinkedList<String>();
-		while(iter.hasNext()){
-			stringList.add(iter.next().getChannel().getName().toLowerCase());
-		}
-		return stringList;
-	}
-	
-	private static List<String> extractFollowerNamesAsStringList(List<Follow> followList) {
-		System.out.println("TwitchAPICallHandler: extractFollowerNamesAsStringList: " + followList.size());
-		Iterator<Follow> iter = followList.iterator();
-		List<String> stringList = new LinkedList<String>();
-		String next = "";
-		while(iter.hasNext()){
-			next = iter.next().getChannel().getName().toLowerCase();
-//			System.out.println("TwitchAPICallHandler: extractFollowerNamesAsStringList: next: " + next);
-			stringList.add(next);
-		}
-		return stringList;
-	}
+
 
 	private static List<String> removeChannelsAlreadyInDatabase(List<String> linkedList) {
 		System.out.println("TwitchAPICallHandler: removeChannelsAlreadyInDatabase: " + linkedList.size());
-//		List<String> toRemove = new LinkedList<String>();
-//		for(String str : linkedList){
-//			if(CassandraDriver3.checkIfChannelFollowersAlreadyFetched(str)){
-//				toRemove.add(str);
-//			}
-//		}
-		
+
 		linkedList.removeAll(channelsAlreadyInChannelsDatabase);
-//		linkedList.removeAll(toRemove);
-//		
-//		Iterator<String> iterator = linkedList.iterator();
-//		while (iterator.hasNext()){
-//			String next = iterator.next();
-//			if(CassandraDriver3.checkIfChannelFollowersAlreadyFetched(next.toLowerCase())){
-//				linkedList.remove(next);
-//			}
-//		}
-//		
-		
+
 		return linkedList;
 	}
 
@@ -399,5 +301,3 @@ public final class TwitchAPICallHandler {
 	}
 
 }
-
-//System.out.println("TwitchAPICallHandler: ");
