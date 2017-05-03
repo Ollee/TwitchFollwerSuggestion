@@ -48,10 +48,12 @@ public class LoginController {
 			int i = 0;
 			String key;
 			while(iter.hasNext() && i < 20){
-				i++;
 				key = iter.next();
-				finalSuggestions.put(TwitchWrapper.getChannelObject(key), channelSuggestions.get(key));
 				System.out.println("Final Run #: " + i + " and key: " + key + " and weight : " + channelSuggestions.get(key));
+				i++;
+				if(TwitchWrapper.channelExists(key)){
+					finalSuggestions.put(TwitchWrapper.getChannelObject(key), channelSuggestions.get(key));
+				}
 			}
 
 			mv.addObject("username", username);

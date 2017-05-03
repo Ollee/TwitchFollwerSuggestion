@@ -113,13 +113,16 @@ public final class TwitchAPICallHandler {
 			internalLevel3Iter = level2Map.get(dumpString).iterator();
 			innerCountdown = level2Map.get(dumpString).size();
 			while(internalLevel3Iter.hasNext()){
-//				System.out.println("TwitchAPICallHandler: pass of second loop over the key list");
 				internalDumpString = internalLevel3Iter.next();
-				if(internalDumpString != null){
-					level3Map.put(internalDumpString, fetchChannelsUserFollows(internalDumpString));
-					System.out.println("TwitchAPICallHandler: handled " + internalDumpString + "on run: " + innerCountdown + " outercountdown: " + outerCountdown);
+				if (!level3Map.containsKey(internalDumpString)) {
+					//				System.out.println("TwitchAPICallHandler: pass of second loop over the key list");
+					if (internalDumpString != null) {
+						level3Map.put(internalDumpString, fetchChannelsUserFollows(internalDumpString));
+						System.out.println("TwitchAPICallHandler: handled " + internalDumpString + "on run: " + innerCountdown
+								+ " outercountdown: " + outerCountdown);
+					}
+					innerCountdown--;
 				}
-				innerCountdown--;
 			}
 			System.out.println("TwitchAPICallHandler: handled " + dumpString + " on run: " + outerCountdown);
 			outerCountdown--;
@@ -169,11 +172,26 @@ public final class TwitchAPICallHandler {
 		Entry<String,Integer> sortedEntry;
 		LinkedHashMap<String,Integer> sortedCommonCount = new LinkedHashMap<String,Integer>();
 		int finalCounter = 0;
-		while(sortedIterator.hasNext() && finalCounter < 100){
+		while(sortedIterator.hasNext() && finalCounter < 25){
+			System.out.println("TwitchAPICallHandler: in final loop: " + finalCounter);
 			sortedEntry = sortedIterator.next();
-			System.out.println("DEBUG: " + sortedEntry.getKey() + " " + sortedEntry.getValue());
-			sortedCommonCount.put(sortedEntry.getKey(), sortedEntry.getValue());
-			finalCounter++;
+			if(sortedEntry.getKey() != username && !userFollows.contains(sortedEntry.getKey())){	
+				if(channelFollowerCounts.containsKey(sortedEntry.getKey()) && sortedEntry.getValue() < followerCountCutoff){
+					System.out.println("DEBUG: " + sortedEntry.getKey() + " " + sortedEntry.getValue());
+					sortedCommonCount.put(sortedEntry.getKey(), sortedEntry.getValue());
+					finalCounter++;
+				} else {
+					System.out.println("TwitchAPICallHandler: Hitting API for follower Count");
+					Long tempLong = TwitchWrapper.getFollowerCount(sortedEntry.getKey());
+					addChannelFollowerCounts(sortedEntry.getKey(), tempLong);
+					if(tempLong < followerCountCutoff){
+						System.out.println("DEBUG: " + sortedEntry.getKey() + " " + sortedEntry.getValue());
+						sortedCommonCount.put(sortedEntry.getKey(), sortedEntry.getValue());
+						finalCounter++;
+					}
+				}
+			}
+			
 		}
 
 		return sortedCommonCount;
@@ -236,7 +254,7 @@ public final class TwitchAPICallHandler {
 		Iterator<String> iter = map.keySet().iterator();
 		while(iter.hasNext()){
 			key = iter.next();
-			if(map.get(key) > cutoff){
+			if(map.get(key) > cutoff || map.get(key) == new Long(0)){
 //				System.out.println("Rmemoving : " + key + " from list");
 				toRemove.add(key);
 			}
@@ -293,4 +311,8 @@ public final class TwitchAPICallHandler {
 		channelFollowerCounts.put(channel, followerCount);
 	}
 
+	public static void addChannelFollowerCounts(String channelname, Long count){
+		CassandraDriver3.insertChannelFollowerCount(channelname, count);
+		channelFollowerCounts.put(channelname, count);
+	}
 }

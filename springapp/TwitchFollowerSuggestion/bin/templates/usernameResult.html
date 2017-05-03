@@ -2,12 +2,14 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link rel='stylesheet' href='css/bootstrap.min.css'></link>
 <title th:text='${username.name}'>Insert title here</title>
 </head>
 <body>
+
 <table>
 		<tr>
-			<h1><div>Channel Suggestions:</div></h1>
+			<h1><div th:text='@{|Channel Suggstions: ${username.name}|}'>Channel Suggestions:</div></h1>
 		</tr>
 	    <tr th:each="sugg : ${suggestions}">
 	    	<td>

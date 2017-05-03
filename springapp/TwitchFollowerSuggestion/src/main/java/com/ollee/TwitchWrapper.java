@@ -1,5 +1,6 @@
 package com.ollee;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +24,7 @@ public final class TwitchWrapper {
 	public TwitchWrapper() {
 	}
 	public static Channel getChannelObject(String channelName){
+		
 		return twitchClient.getChannelEndpoint(channelName).getChannel();
 	}
 
@@ -81,6 +83,12 @@ public final class TwitchWrapper {
 					e.printStackTrace();
 				}
 			} 
+		}
+		Iterator<Follow> iterator = userFollows.iterator();
+		while(iterator.hasNext()){
+			Follow holdme = iterator.next();
+			TwitchAPICallHandler.addChannelFollowerCounts(holdme.getChannel().getName().toLowerCase(), holdme.getChannel().getFollowers());
+			
 		}
 //		System.out.println("TwitchWrapper: " + user + " follows: " + userFollows.size() + " channels");
 		return userFollows;
