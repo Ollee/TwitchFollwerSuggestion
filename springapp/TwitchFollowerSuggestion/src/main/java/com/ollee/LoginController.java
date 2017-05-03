@@ -20,45 +20,54 @@ public class LoginController {
 	
 	@GetMapping("/")
 	public String indexGet(Model model){
+		
 		model.addAttribute("username", new UserName());
+		
 		System.out.println("hit LoginController.indexGet");
+		
 		return "index";
 	}
 	
 	@PostMapping("/")
 	public ModelAndView greetingSubmit(@ModelAttribute UserName username){
-		
 		//gather info and return to usernameResult
 		ModelAndView mv = null;
 		
 		if(TwitchWrapper.channelExists(username.getName())){
+			
 			mv = new ModelAndView("usernameResult");
 			Long initial = Instant.now().getEpochSecond();
-			//CassandraDriver.threadedInsertFollowList(new LinkedList<Follow>(userFollows));
 			TwitchAPICallHandler callHandler = new TwitchAPICallHandler();
-			LinkedHashMap<String, Integer> channelSuggestions = callHandler.fetchChannelSuggestions(username.getName());
+			
 			Long post = Instant.now().getEpochSecond();
 			
-			System.out.println("This took this long in Seconds: " + (post - initial));
-
-
-			LinkedHashMap<Channel,Integer> finalSuggestions = new LinkedHashMap<Channel, Integer>();
+			LinkedHashMap<String, Integer> channelSuggestions = callHandler.fetchChannelSuggestions(username.getName());
 			
+			System.out.println("This took this long in Seconds: " + (post - initial));
+			
+			LinkedHashMap<Channel,Integer> finalSuggestions = new LinkedHashMap<Channel, Integer>();
 			Iterator<String> iter = channelSuggestions.keySet().iterator();
+			
 			int i = 0;
 			String key;
+			
 			while(iter.hasNext() && i < 20){
 				key = iter.next();
+				
 				System.out.println("Final Run #: " + i + " and key: " + key + " and weight : " + channelSuggestions.get(key));
-				i++;
+				
 				if(TwitchWrapper.channelExists(key)){
 					finalSuggestions.put(TwitchWrapper.getChannelObject(key), channelSuggestions.get(key));
 				}
+				
+				i++;
 			}
 
 			mv.addObject("username", username);
 			mv.addObject("suggestions", finalSuggestions);
+			
 			System.out.println("LoginController: hit LoginController.greetingSubmit for user: " + username.getName());
+			
 		} else {
 			mv = new ModelAndView("redirect:/");
 		}

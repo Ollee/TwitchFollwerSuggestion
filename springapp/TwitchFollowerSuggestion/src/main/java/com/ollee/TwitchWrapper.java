@@ -23,6 +23,7 @@ public final class TwitchWrapper {
 	
 	public TwitchWrapper() {
 	}
+	
 	public static Channel getChannelObject(String channelName){
 		
 		return twitchClient.getChannelEndpoint(channelName).getChannel();
@@ -30,7 +31,6 @@ public final class TwitchWrapper {
 
 	//get list of of followers a channel has
 	public static List<Follow> getChannelFollowers(String channel){
-		
 		ChannelEndpoint channelEndpoint = twitchClient.getChannelEndpoint(twitchClient.getUserEndpoint().getUserIdByUserName(channel).get());
 		Long followerCount = getFollowerCount(channel);
 		
@@ -52,10 +52,12 @@ public final class TwitchWrapper {
 	
 	public static Long getFollowerCount(String channel){
 		Long followerCount = (long) 0;
+		
 		try {
 			ChannelEndpoint channelEndpoint = twitchClient.getChannelEndpoint(
 													twitchClient.getUserEndpoint().getUserIdByUserName(channel).get());
 			followerCount = channelEndpoint.getChannel().getFollowers();
+			
 			CassandraDriver3.insertChannelFollowerCount(channel, followerCount);
 			TwitchAPICallHandler.addToChannelFollowerCounts(channel, followerCount);
 		} catch (Exception e) {
@@ -68,10 +70,14 @@ public final class TwitchWrapper {
 	//get list of all channels a user follows
 	public static List<Follow> getUserChannelsFollowed(String user){
 		List<Follow> userFollows = new LinkedList<Follow>();
+		Iterator<Follow> iterator;
+		
 		if(channelExists(user)){
 			UserEndpoint userEndpoint = twitchClient.getUserEndpoint();
 			Optional<User> userObject = userEndpoint.getUser(twitchClient.getUserEndpoint().getUserIdByUserName(user).get());
+			
 			if(userObject.isPresent()){
+				
 				try {
 					userFollows = userEndpoint.getUserFollows(	userObject.get().getId(), 
 																			Optional.ofNullable(new Long(999999999)), 
@@ -84,13 +90,17 @@ public final class TwitchWrapper {
 				}
 			} 
 		}
-		Iterator<Follow> iterator = userFollows.iterator();
+		
+		iterator = userFollows.iterator();
+		
 		while(iterator.hasNext()){
 			Follow holdme = iterator.next();
 			TwitchAPICallHandler.addChannelFollowerCounts(holdme.getChannel().getName().toLowerCase(), holdme.getChannel().getFollowers());
 			
 		}
+		
 //		System.out.println("TwitchWrapper: " + user + " follows: " + userFollows.size() + " channels");
+		
 		return userFollows;
 	}
 	
@@ -102,6 +112,7 @@ public final class TwitchWrapper {
 	}
 
 	public static boolean channelExists(String username){
+		
 		try {
 			twitchClient.getChannelEndpoint(username);
 		} catch (Exception e) {

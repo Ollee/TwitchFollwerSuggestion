@@ -37,7 +37,7 @@ public final class CassandraDriver3 {
 				.build();
 		System.out.println("CassandraDriver: connection to cluster");
 		session = cluster.connect(keyspaceName);
-		//TODO fetch entire DB from cassandra to local map
+		
 		fetchAllFromDatabase();
 	}
 	
@@ -68,12 +68,14 @@ public final class CassandraDriver3 {
 	private static void fetchAllFollowersFromDB() {
 		List<Row> row1 = session.execute("SELECT count(*) from "+followerTable+";").all();
 		Long size = new Long(-1);
+		
 		if(!row1.isEmpty()){
 			size = row1.get(0).getLong("count");
 		}
 		
 		Row row;
 		ResultSet resultSet = session.execute("SELECT * FROM " + followerTable + ";");
+		
 		System.out.print("Followers wait Size: " + size);
 		
 		while(!resultSet.isFullyFetched() || !resultSet.isExhausted()){
@@ -82,18 +84,21 @@ public final class CassandraDriver3 {
 			row = resultSet.one();
 			followerTableMap.put(row.getString("username").toLowerCase(), commaSeparatedStringToStringList(row.getString("channels")));
 		}
+		
 		System.out.println("CassandraDriver3: FETCHED FOLLOWERTABLEMAP: " + followerTableMap.size());
 	}
 
 	private static void fetchAllChannelsFromDB() {
 		List<Row> row1 = session.execute("SELECT count(*) from "+channelTable+";").all();
 		Long size = new Long(-1);
+		
 		if(!row1.isEmpty()){
 			size = row1.get(0).getLong("count");
 		}
 		
 		Row row;
 		ResultSet resultSet = session.execute("SELECT * FROM " + channelTable + ";");
+		
 		System.out.print("Channels wait Size: " + size);
 		
 		while(!resultSet.isFullyFetched() || !resultSet.isExhausted()){
@@ -112,6 +117,7 @@ public final class CassandraDriver3 {
 		
 		if (!followerMapContains(follower)) {
 			followerTableMap.put(follower, channelsFollowed);
+			
 			try {
 				session.execute("INSERT INTO " + followerTable + " (username, channels, timestamp) VALUES ('" + follower
 						+ "'," + commaSeparateListFromStringList(channelsFollowed) + ", '"
@@ -125,15 +131,17 @@ public final class CassandraDriver3 {
 	
 	public static List<String> getFollowList(String follower){
 		System.out.println("CassandraDriver3: getFollowList: " + follower);
-//		List<String> returnList = new LinkedList<String>();
+
 		List<Row> result = null;
 		
 		if(!followerMapContains(follower)){
+			
 			try{
 				result = session.execute("SELECT * FROM " + followerTable + " WHERE username='" + follower + "' ALLOW FILTERING;").all();
 			} catch (Exception e){
 				System.out.println("CassandraDriver3: SELECT FROM followers threw an error: " + e.getStackTrace().toString());
 			}
+			
 		} else{
 			return getListFromFollowerMap(follower);
 		}
@@ -143,9 +151,9 @@ public final class CassandraDriver3 {
 	
 	private static List<String> commaSeparatedStringToStringList(String rawString){
 		List<String> workingList = new LinkedList<String>(Arrays.asList(rawString.split(",")));
-
 		List<String> lowerCaseWorkingList = new LinkedList<String>();
 		Iterator<String> iter = workingList.iterator();
+		
 		while(iter.hasNext()){
 			lowerCaseWorkingList.add(iter.next().toLowerCase());
 		}
@@ -157,11 +165,11 @@ public final class CassandraDriver3 {
 		String workingString = "'";
 //		System.out.println("CassandraDriver3: commaSeparateListFromStringList: channelsfollows.size: " + channelsFollowed.size());
 		Iterator<String> iter = channelsFollowed.iterator();
-//		int numberofruns = 0;
+		
 		while(iter.hasNext()){
-//			numberofruns++;
 			String next = iter.next();
 			workingString+=next.toLowerCase();
+			
 			if(iter.hasNext()){
 				workingString+=",";
 			} else{
@@ -170,6 +178,7 @@ public final class CassandraDriver3 {
 		}
 		
 //		System.out.println("after a number of runs: " + numberofruns + " workingString is: " + workingString);
+		
 		return workingString;
 	}	
 	
@@ -193,12 +202,12 @@ public final class CassandraDriver3 {
 	public static List<String> getChannelFollowerList(String channelname){
 		System.out.println("CassandraDriver3: getChannelFollowerList: " + channelname);
 		List<String> returnList = new LinkedList<String>();
+		List<Row> result = null;
 		
 		if(channelMapContains(channelname)){
 			return getListFromChannelFollowerMap(channelname);
 		}
 		
-		List<Row> result = null;
 		try{
 			result = session.execute("SELECT * FROM " + channelTable + " WHERE channelname='" + channelname + "' ALLOW FILTERING;").all();
 		} catch (Exception e){
@@ -216,28 +225,29 @@ public final class CassandraDriver3 {
 	//technically has coverage cause it uses getChannelFollowerList
 	public static Map<String, List<String>> getChannelFollowerMap(List<String> list){
 		System.out.println("CassandraDriver3: getChannelFollowerMap: " + list.size());
+		
 		Map<String, List<String>> returnMap = new ConcurrentHashMap<String, List<String>>();
 		Iterator<String> iter = list.iterator();
 		List<String> workingList = null;
-//		int counter = 0;
 		String key = "";
+		
 		while(iter.hasNext()){
 			key = iter.next();
 			workingList = CassandraDriver3.getChannelFollowerList(key);
+			
 			if(!workingList.isEmpty()){
 				returnMap.put(key, workingList);
 			}
+			
 //			System.out.println("Debug Index: " + list.indexOf(key) + " run counter: " + counter++ + " Key: " + key + " returnMap: " + returnMap.size());
+			
 		}
+		
 		System.out.println("returnmap size: " + returnMap.size() + " returnmapkeysetsize: " + returnMap.keySet().size());
+		
 		return returnMap;
 	}
 
-//	public static boolean checkIfUserChannelsFollowedAlreadyFetched(String username){
-//		return followerMapContains(username);
-//	}
-	
-	//majority of this functionality was probably removed from adding local cacheing...no just return list of the keys
 	public static List<String> getListOfChannelsAlreadyInDatabase() {
 		return new LinkedList<String>(channelTableMap.keySet());
 	}
@@ -247,6 +257,7 @@ public final class CassandraDriver3 {
 	}
 	
 	public static void insertChannelFollowerCount(String channel, Long followerCount) {
+		
 		try{
 			session.execute("INSERT INTO followercount (channelname, count) VALUES ('" +
 				channel + "',"+ 
@@ -259,14 +270,18 @@ public final class CassandraDriver3 {
 	public static Map<String, Long> getChannelFollowerCounts() {
 		List<Row> result = null;
 		Map<String, Long> map = new ConcurrentHashMap<String,Long>();
+		Iterator<Row> iter;
+		Row workingRow = null;
+		
 		try{
 			result = session.execute("SELECT * FROM followercount;").all();
 		} catch (Exception e){
 			System.out.println("CassandraDriver3: SELECT FROM followers threw an error: " + e.getMessage());
 			return null;
 		}
-		Iterator<Row> iter = result.iterator();
-		Row workingRow = null;
+		
+		iter = result.iterator();
+		
 		while(iter.hasNext()){
 			workingRow = iter.next();
 			
